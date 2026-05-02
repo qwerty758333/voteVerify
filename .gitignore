@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+.next/
+.env.local
+.env*.local
+*.log
+.DS_Store
+
+data/voters.json
