@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import FullBackground from '@/app/components/FullBackground'
 
 export default function OfficerPage() {
   const [voters, setVoters] = useState([])
@@ -46,159 +47,147 @@ export default function OfficerPage() {
   async function markAsVoted(id) {
     setMarking(id)
     try {
-      const res = await fetch(`/api/voters/${id}/vote`, {
-        method: 'PATCH'
-      })
-      if (!res.ok) throw new Error('Failed to mark voter')
+      const res = await fetch(`/api/voters/${id}/vote`, { method: 'PATCH' })
+      if (!res.ok) throw new Error('Failed')
       await fetchVoters()
     } catch (err) {
-      alert('Something went wrong.')
+      alert('Something went wrong')
     } finally {
       setMarking(null)
     }
   }
 
   const filtered = voters.filter(v =>
-    v.name.toLowerCase().includes(search.toLowerCase()) ||
-    v.nic.includes(search)
+    v.name.toLowerCase().includes(search.toLowerCase()) || v.nic.includes(search)
   )
 
   const totalVoters = voters.length
   const verifiedCount = voters.filter(v => v.sobaVerified).length
   const votedCount = voters.filter(v => v.hasVoted).length
 
-  // PIN Login Screen
   if (!authenticated) {
     return (
-      <main className="min-h-screen bg-[#0D1B3E] flex items-center justify-center p-6">
-        <div className="bg-[#162447] rounded-lg p-8 w-full max-w-md shadow-xl">
-          <a href="/" className="text-[#A0B4CC] text-sm mb-6 block hover:text-white">← Back</a>
-          <h1 className="text-2xl font-bold text-white mb-1">Officer Login</h1>
-          <p className="text-[#A0B4CC] text-sm mb-6">Enter PIN to access the dashboard</p>
+      <main className="min-h-screen w-full flex items-center justify-center p-4 sm:p-8 relative">
+        <FullBackground />
+        <div className="w-full max-w-[480px] relative z-10 py-10 mx-auto">
+          <div className="flex flex-col items-start w-full">
+            <a href="/" className="inline-flex items-center gap-3 text-white bg-[#62609f] active:bg-[#3b3960] hover:bg-[#4e4d80] font-bold mb-8 px-6 py-3 rounded-full transition-all text-sm shadow-2xl border-2 border-white/30 relative z-[50] whitespace-nowrap">
+              <span className="transition-transform group-hover:-translate-x-1">←</span> Back to Home
+            </a>
+            
+            <div className="w-full">
 
-          <div className="flex flex-col gap-4">
+          <div className="card">
+            <h1 className="text-3xl font-bold mb-2 text-slate-900">Officer Access</h1>
+            <p className="text-slate-600 mb-8">Enter PIN</p>
+
             <input
-              className="w-full bg-[#0D1B3E] text-white border border-[#2A3F6A] rounded px-4 py-3 focus:outline-none focus:border-[#E8A020] text-center text-2xl tracking-widest"
-              placeholder="••••"
               type="password"
+              placeholder="••••"
               value={pin}
               onChange={e => setPin(e.target.value)}
               onKeyPress={e => e.key === 'Enter' && handlePinLogin()}
+              maxLength="4"
+              className="text-center text-3xl tracking-widest mb-4 font-bold"
             />
-            {pinError && <p className="text-red-400 text-sm text-center">{pinError}</p>}
-            <button
-              onClick={handlePinLogin}
-              className="w-full bg-[#E8A020] text-[#0D1B3E] font-bold py-3 rounded hover:opacity-90"
-            >
-              Login
-            </button>
-            <p className="text-[#A0B4CC] text-xs text-center">Demo PIN: 1234</p>
+
+            {pinError && <div className="alert alert-error">{pinError}</div>}
+
+            <div className="flex justify-center mt-4 mb-4">
+              <button onClick={handlePinLogin} className="btn btn-primary w-full sm:w-auto min-w-[200px]">Login</button>
+            </div>
+
+            <p className="text-xs text-slate-400 text-center">Demo PIN: 1234</p>
+          </div>
           </div>
         </div>
-      </main>
+      </div>
+    </main>
     )
   }
 
-  // Officer Dashboard
   return (
-    <main className="min-h-screen bg-[#0D1B3E] p-6">
-      <div className="max-w-5xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
+    <main className="flex-1 w-full flex flex-col items-center justify-start py-12 px-6 relative">
+      <FullBackground />
+      <div className="max-w-6xl w-full mx-auto relative z-10">
+        <div className="flex justify-between items-start mb-8">
           <div>
-            <a href="/" className="text-[#A0B4CC] text-sm mb-4 block hover:text-white">← Back</a>
-            <h1 className="text-2xl font-bold text-white">Officer Dashboard</h1>
-            <p className="text-[#A0B4CC] text-sm">Real-time voter verification status</p>
+            <a href="/" className="inline-flex items-center gap-3 text-white bg-[#62609f] hover:bg-[#4e4d80] font-bold mb-10 px-8 py-3.5 rounded-full transition-all text-base group shadow-2xl border-2 border-white/30 relative z-[50] whitespace-nowrap">
+              <span className="transition-transform group-hover:-translate-x-1">←</span> Dashboard Home
+            </a>
+            <h1 className="text-4xl font-bold text-slate-900">Officer Dashboard</h1>
+            <p className="text-slate-600 mt-1">Manage voter verification</p>
           </div>
           <button
-            onClick={() => {
-              setAuthenticated(false)
-              setPin('')
-            }}
-            className="px-4 py-2 bg-red-600 text-white rounded text-sm hover:bg-red-700"
+            onClick={() => { setAuthenticated(false); setPin('') }}
+            className="btn btn-danger"
           >
             Logout
           </button>
         </div>
 
-        <span className="text-xs text-[#A0B4CC] bg-[#162447] px-3 py-1 rounded-full mb-6 inline-block">
-          Auto-refreshes every 5s
-        </span>
-
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           {[
-            { label: 'Total Registered', value: totalVoters, color: 'text-white' },
-            { label: 'SOBA Verified', value: verifiedCount, color: 'text-[#E8A020]' },
-            { label: 'Voted', value: votedCount, color: 'text-green-400' },
-          ].map(({ label, value, color }) => (
-            <div key={label} className="bg-[#162447] rounded-lg p-4 text-center">
-              <p className={`text-3xl font-bold ${color}`}>{value}</p>
-              <p className="text-[#A0B4CC] text-sm mt-1">{label}</p>
+            { label: 'Total Registered', value: totalVoters },
+            { label: 'SOBA Verified', value: verifiedCount },
+            { label: 'Voted', value: votedCount }
+          ].map(({ label, value }) => (
+            <div key={label} className="card">
+              <p className="text-slate-400 text-sm mb-2">{label}</p>
+              <p className="text-4xl font-bold text-[#8180b3]">{value}</p>
             </div>
           ))}
         </div>
 
         {/* Search */}
-        <input
-          className="w-full bg-[#162447] text-white border border-[#2A3F6A] rounded px-4 py-2 mb-4 focus:outline-none focus:border-[#E8A020]"
-          placeholder="Search by name or NIC..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
+        <div className="mb-6">
+          <input
+            placeholder="🔍 Search by name or NIC..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
 
-        {/* Voter List */}
+        {/* Voters */}
         {loading ? (
-          <p className="text-[#A0B4CC] text-center py-10">Loading voters...</p>
+          <div className="card text-center text-slate-600">Loading...</div>
         ) : filtered.length === 0 ? (
-          <p className="text-[#A0B4CC] text-center py-10">No voters found.</p>
+          <div className="card text-center text-slate-600">No voters</div>
         ) : (
-          <div className="flex flex-col gap-3">
+          <div className="space-y-3">
             {filtered.map(voter => (
-              <div
-                key={voter.id}
-                className="bg-[#162447] rounded-lg px-5 py-4 flex items-center justify-between border border-[#2A3F6A]"
-              >
-                {/* Voter Info */}
+              <div key={voter.id} className="card flex justify-between items-center hover:shadow-lg">
                 <div>
-                  <p className="text-white font-semibold">{voter.name}</p>
-                  <p className="text-[#A0B4CC] text-sm">NIC: {voter.nic}</p>
-                  <p className="text-[#A0B4CC] text-sm">{voter.email}</p>
+                  <p className="font-semibold text-slate-900">{voter.name}</p>
+                  <p className="text-sm text-slate-600">NIC: {voter.nic} • {voter.email}</p>
                 </div>
 
-                {/* Status + Action */}
-                <div className="flex items-center gap-4">
-                  {/* SOBA Verified Badge */}
-                  <span className={`text-xs font-bold px-3 py-1 rounded-full ${
-                    voter.sobaVerified
-                      ? 'bg-[#E8A020] text-[#0D1B3E]'
-                      : 'bg-[#2A3F6A] text-[#A0B4CC]'
-                  }`}>
-                    {voter.sobaVerified ? 'SOBA Verified' : 'Not Verified'}
+                <div className="flex gap-3">
+                  <span className={`badge ${voter.sobaVerified ? 'badge-success' : 'badge-neutral'}`}>
+                    {voter.sobaVerified ? '✓ Verified' : '○ Not Verified'}
                   </span>
 
-                  {/* Vote Status / Button */}
                   {voter.hasVoted ? (
-                    <span className="text-xs font-bold px-3 py-1 rounded-full bg-green-700 text-green-200">
-                      Voted ✓
-                    </span>
+                    <span className="badge badge-primary">✓ Voted</span>
                   ) : voter.sobaVerified ? (
                     <button
                       onClick={() => markAsVoted(voter.id)}
                       disabled={marking === voter.id}
-                      className="text-xs font-bold px-3 py-1 rounded-full bg-green-600 text-white hover:bg-green-500 disabled:opacity-50"
+                      className="btn btn-primary text-sm py-2 px-4"
                     >
-                      {marking === voter.id ? 'Marking...' : 'Mark as Voted'}
+                      {marking === voter.id ? 'Marking...' : 'Mark Voted'}
                     </button>
                   ) : (
-                    <span className="text-xs px-3 py-1 rounded-full bg-[#2A3F6A] text-[#A0B4CC]">
-                      Awaiting Verification
-                    </span>
+                    <span className="badge badge-warning">Pending</span>
                   )}
                 </div>
               </div>
             ))}
           </div>
         )}
+
+        <p className="text-center text-slate-500 text-xs mt-8">Auto-refreshing every 5s</p>
       </div>
     </main>
   )

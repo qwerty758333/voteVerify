@@ -1,6 +1,7 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import SobaButton from '@/app/components/SobaButton'
+import FullBackground from '@/app/components/FullBackground'
 
 export default function VoterPage() {
   const [nic, setNic] = useState('')
@@ -15,6 +16,7 @@ export default function VoterPage() {
       setError('Please fill in all fields')
       return
     }
+
     setLoading(true)
     setError('')
 
@@ -25,108 +27,71 @@ export default function VoterPage() {
         body: JSON.stringify({ nic, email, name })
       })
 
-      if (!res.ok) throw new Error('Registration failed')
-        localStorage.setItem('voterEmail', email)
+      if (!res.ok) {
+        setError('NIC already registered')
+        setLoading(false)
+        return
+      }
+
+      localStorage.setItem('voterEmail', email)
       setSubmitted(true)
     } catch (err) {
-      setError('Something went wrong. Please try again.')
+      setError('Something went wrong')
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => {
-    // Listen for SOBA callback
-    const handleSobaCallback = (event) => {
-      if (event.data && event.data.type === 'SOBA_VERIFIED') {
-        // Voter was verified, update their status
-        fetch('/api/verify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email })
-        }).then(() => {
-          setSubmitted(false)
-          setError('')
-          alert('Verification complete! You can now vote on polling day.')
-          // Reset form
-          setNic('')
-          setEmail('')
-          setName('')
-        })
-      }
-    }
-
-    window.addEventListener('message', handleSobaCallback)
-    return () => window.removeEventListener('message', handleSobaCallback)
-  }, [email])
-
   return (
-    <main className="min-h-screen bg-[#0D1B3E] flex items-center justify-center p-6">
-      <div className="bg-[#162447] rounded-lg p-8 w-full max-w-md shadow-xl">
-        
-        {/* Header */}
-        <a href="/" className="text-[#A0B4CC] text-sm mb-6 block hover:text-white">← Back</a>
-        <h1 className="text-2xl font-bold text-white mb-1">Voter Registration</h1>
-        <p className="text-[#A0B4CC] text-sm mb-6">Register and verify your identity with SOBA</p>
+    <main className="min-h-screen w-full flex items-center justify-center p-4 sm:p-8 relative">
+      <FullBackground />
+      <div className="w-full max-w-[480px] relative z-10 py-10 mx-auto">
+        <div className="flex flex-col items-start w-full">
+          <a href="/" className="inline-flex items-center gap-3 text-white bg-[#62609f] active:bg-[#3b3960] hover:bg-[#4e4d80] font-bold mb-8 px-6 py-3 rounded-full transition-all text-sm shadow-2xl border-2 border-white/30 relative z-[50] whitespace-nowrap">
+            <span className="transition-transform group-hover:-translate-x-1">←</span> Back to Home
+          </a>
+          
+          <div className="w-full">
 
         {!submitted ? (
-          // Step 1 — Fill in details
-          <div className="flex flex-col gap-4">
-            <div>
-              <label className="text-[#A0B4CC] text-sm mb-1 block">Full Name</label>
-              <input
-                className="w-full bg-[#0D1B3E] text-white border border-[#2A3F6A] rounded px-4 py-2 focus:outline-none focus:border-[#E8A020]"
-                placeholder="Enter your full name"
-                value={name}
-                onChange={e => setName(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="text-[#A0B4CC] text-sm mb-1 block">NIC Number</label>
-              <input
-                className="w-full bg-[#0D1B3E] text-white border border-[#2A3F6A] rounded px-4 py-2 focus:outline-none focus:border-[#E8A020]"
-                placeholder="e.g. 199512345678"
-                value={nic}
-                onChange={e => setNic(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="text-[#A0B4CC] text-sm mb-1 block">Email Address</label>
-              <input
-                className="w-full bg-[#0D1B3E] text-white border border-[#2A3F6A] rounded px-4 py-2 focus:outline-none focus:border-[#E8A020]"
-                placeholder="Enter your email"
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-              />
-            </div>
+          <div className="card">
+            <h1 className="text-3xl font-bold mb-2 text-slate-900">Register to Vote</h1>
+            <p className="text-slate-600 mb-8">Create your voter account</p>
 
-            {error && <p className="text-red-400 text-sm">{error}</p>}
+            <div className="space-y-4">
+              <input placeholder="Full Name" value={name} onChange={e => setName(e.target.value)} />
+              <input placeholder="NIC Number" value={nic} onChange={e => setNic(e.target.value)} />
+              <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
 
-            <button
-              onClick={handleRegister}
-              disabled={loading}
-              className="w-full bg-[#E8A020] text-[#0D1B3E] font-bold py-3 rounded hover:opacity-90 disabled:opacity-50"
-            >
-              {loading ? 'Registering...' : 'Register'}
-            </button>
+              {error && <div className="alert alert-error">{error}</div>}
+
+              <div className="flex justify-center mt-4">
+                <button onClick={handleRegister} disabled={loading} className="btn btn-primary w-full sm:w-auto min-w-[200px]">
+                  {loading ? 'Creating...' : 'Create Account'}
+                </button>
+              </div>
+
+              <p className="text-center text-slate-600 text-sm">
+                Already registered? <a href="/voter/login" className="text-[#4e4d80] font-semibold hover:underline">Sign in</a>
+              </p>
+            </div>
           </div>
         ) : (
-          // Step 2 — SOBA verification
-          <div className="flex flex-col items-center gap-6 text-center">
-            <div className="w-16 h-16 bg-[#E8A020] rounded-full flex items-center justify-center text-[#0D1B3E] text-2xl font-bold">✓</div>
-            <div>
-              <h2 className="text-white font-bold text-lg mb-1">Registration Successful!</h2>
-              <p className="text-[#A0B4CC] text-sm">Now verify your identity with face recognition.</p>
+          <div className="card text-center">
+            <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-200">
+              <span className="text-3xl text-emerald-600">✓</span>
             </div>
+            <h2 className="text-2xl font-bold mb-2 text-slate-900">Account Created</h2>
+            <p className="text-slate-600 mb-6">Now verify your identity with SOBA</p>
 
-            {/* SOBA Button Container */}
-            <div id="poh-button-container" className="w-full" />
-            <SobaButton />
+            <div id="poh-button-container" className="mb-4" />
+            <SobaButton email={email} />
 
-            <p className="text-[#A0B4CC] text-xs">Your face will be scanned securely via SOBA's encrypted network</p>
+            <p className="text-xs text-slate-500 mt-4">Your data stays with SOBA</p>
           </div>
         )}
+          </div>
+        </div>
       </div>
     </main>
   )

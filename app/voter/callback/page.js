@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import FullBackground from '@/app/components/FullBackground'
 
 export default function VoterPage() {
   const [nic, setNic] = useState('')
@@ -60,39 +61,40 @@ export default function VoterPage() {
   }, [email])
 
   return (
-    <main className="min-h-screen bg-[#0D1B3E] flex items-center justify-center p-6">
-      <div className="bg-[#162447] rounded-lg p-8 w-full max-w-md shadow-xl">
-        
-        {/* Header */}
-        <a href="/" className="text-[#A0B4CC] text-sm mb-6 block hover:text-white">← Back</a>
-        <h1 className="text-2xl font-bold text-white mb-1">Voter Registration</h1>
-        <p className="text-[#A0B4CC] text-sm mb-6">Register and verify your identity with SOBA</p>
+    <main className="min-h-screen w-full flex items-center justify-center p-4 sm:p-8 relative">
+      <FullBackground />
+      <div className="w-full max-w-[480px] relative z-10 py-10 mx-auto">
+        <div className="flex flex-col items-start w-full">
+          <a href="/" className="inline-flex items-center gap-3 text-white bg-[#62609f] active:bg-[#3b3960] hover:bg-[#4e4d80] font-bold mb-8 px-6 py-3 rounded-full transition-all text-sm shadow-2xl border-2 border-white/30 relative z-[50] whitespace-nowrap">
+            <span className="transition-transform group-hover:-translate-x-1">←</span> Back to Home
+          </a>
+          
+          <div className="card w-full border-0">
+        <h1 className="text-3xl font-bold mb-2 text-slate-900">Voter Registration</h1>
+        <p className="text-slate-600 mb-8">Register and verify your identity with SOBA</p>
 
         {!submitted ? (
           // Step 1 — Fill in details
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-5">
             <div>
-              <label className="text-[#A0B4CC] text-sm mb-1 block">Full Name</label>
+              <label className="text-slate-600 font-medium text-sm mb-1.5 block">Full Name</label>
               <input
-                className="w-full bg-[#0D1B3E] text-white border border-[#2A3F6A] rounded px-4 py-2 focus:outline-none focus:border-[#E8A020]"
                 placeholder="Enter your full name"
                 value={name}
                 onChange={e => setName(e.target.value)}
               />
             </div>
             <div>
-              <label className="text-[#A0B4CC] text-sm mb-1 block">NIC Number</label>
+              <label className="text-slate-600 font-medium text-sm mb-1.5 block">NIC Number</label>
               <input
-                className="w-full bg-[#0D1B3E] text-white border border-[#2A3F6A] rounded px-4 py-2 focus:outline-none focus:border-[#E8A020]"
                 placeholder="e.g. 199512345678"
                 value={nic}
                 onChange={e => setNic(e.target.value)}
               />
             </div>
             <div>
-              <label className="text-[#A0B4CC] text-sm mb-1 block">Email Address</label>
+              <label className="text-slate-600 font-medium text-sm mb-1.5 block">Email Address</label>
               <input
-                className="w-full bg-[#0D1B3E] text-white border border-[#2A3F6A] rounded px-4 py-2 focus:outline-none focus:border-[#E8A020]"
                 placeholder="Enter your email"
                 type="email"
                 value={email}
@@ -100,31 +102,35 @@ export default function VoterPage() {
               />
             </div>
 
-            {error && <p className="text-red-400 text-sm">{error}</p>}
+            {error && <div className="alert alert-error">{error}</div>}
 
-            <button
-              onClick={handleRegister}
-              disabled={loading}
-              className="w-full bg-[#E8A020] text-[#0D1B3E] font-bold py-3 rounded hover:opacity-90 disabled:opacity-50"
-            >
-              {loading ? 'Registering...' : 'Register'}
-            </button>
+            <div className="flex justify-center mt-2">
+              <button
+                onClick={handleRegister}
+                disabled={loading}
+                className="btn btn-primary w-full sm:w-auto min-w-[200px]"
+              >
+                {loading ? 'Registering...' : 'Register'}
+              </button>
+            </div>
           </div>
         ) : (
           // Step 2 — SOBA verification
           <div className="flex flex-col items-center gap-6 text-center">
-            <div className="w-16 h-16 bg-[#E8A020] rounded-full flex items-center justify-center text-[#0D1B3E] text-2xl font-bold">✓</div>
+            <div className="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center text-emerald-600 border border-emerald-500/30 text-4xl font-bold mb-2">✓</div>
             <div>
-              <h2 className="text-white font-bold text-lg mb-1">Registration Successful!</h2>
-              <p className="text-[#A0B4CC] text-sm">Now verify your identity with face recognition.</p>
+              <h2 className="text-2xl font-bold mb-2 text-slate-900">Registration Successful!</h2>
+              <p className="text-slate-600">Now verify your identity with face recognition.</p>
             </div>
 
             {/* SOBA Button Container */}
-            <div id="poh-button-container" className="w-full" />
+            <div id="poh-button-container" className="w-full flex justify-center my-2" />
 
-            <p className="text-[#A0B4CC] text-xs">Your face will be scanned securely via SOBA's encrypted network</p>
+            <p className="text-slate-500 text-xs mt-2">Your face will be scanned securely via SOBA's encrypted network</p>
           </div>
         )}
+          </div>
+        </div>
       </div>
     </main>
   )
