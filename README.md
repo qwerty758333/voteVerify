@@ -61,6 +61,11 @@ Open `http://localhost:3000`
 - Mark voters as voted (prevents duplicates)
 - Auto-refresh every 5 seconds
 
+✅ **Dynamic Event Management**
+- Configure SOBA Event ID and API Key from the dashboard
+- Hot-swap events without code changes
+- Persistent configuration via JSON
+
 ✅ **Privacy by Design**
 - No raw biometric data stored in VoteVerify
 - SOBA handles all face verification securely
@@ -93,17 +98,22 @@ voteverify/
 │   │   ├── dashboard/page.js            # Voter status dashboard
 │   │   └── success/page.js              # Verification success
 │   ├── officer/
-│   │   └── page.js                      # Officer dashboard + PIN login
+│   │   ├── page.js                      # Officer dashboard + PIN login
+│   │   └── settings/page.js             # Dynamic event settings
 │   ├── components/
-│   │   └── SobaButton.js                # SOBA integration button
+│   │   └── SobaButton.js                # Dynamic SOBA integration button
 │   └── api/
 │       ├── voters/route.js              # GET/POST voters
 │       ├── voters/[id]/vote/route.js    # Mark as voted
+│       ├── events/route.js              # GET/POST SOBA event settings
 │       ├── verify/route.js              # Verify status
 │       └── soba-callback/route.js       # SOBA redirect handler
+├── lib/
+│   └── events.js                        # Event settings utility
 ├── data/
-│   └── voters.json                      # Demo database
-├── .env.local                           # SOBA credentials
+│   ├── voters.json                      # Demo voter database
+│   └── events.json                      # Persistent event settings
+├── .env.local                           # Default SOBA credentials
 ├── public/                              # Static files
 └── README.md                            # This file
 ```

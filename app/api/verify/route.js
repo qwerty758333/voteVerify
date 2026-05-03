@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
+import { getEventSettings } from '@/lib/events'
 
 const DB_PATH = path.join(process.cwd(), 'data', 'voters.json')
 
@@ -14,6 +15,9 @@ function writeVoters(voters) {
 }
 
 export async function POST(request) {
+  const settings = getEventSettings()
+  // Use settings.apiKey for backend-to-backend verification calls if needed
+  
   const { email } = await request.json()
 
   const voters = readVoters()

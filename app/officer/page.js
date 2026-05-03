@@ -11,6 +11,8 @@ export default function OfficerPage() {
   const [pin, setPin] = useState('')
   const [pinError, setPinError] = useState('')
 
+  const [currentEvent, setCurrentEvent] = useState(null)
+
   const OFFICER_PIN = '1234'
 
   function handlePinLogin() {
@@ -18,6 +20,7 @@ export default function OfficerPage() {
       setAuthenticated(true)
       setPinError('')
       fetchVoters()
+      fetchEventSettings()
     } else {
       setPinError('Incorrect PIN')
       setPin('')
@@ -27,10 +30,21 @@ export default function OfficerPage() {
   useEffect(() => {
     if (authenticated) {
       fetchVoters()
+      fetchEventSettings()
       const interval = setInterval(fetchVoters, 5000)
       return () => clearInterval(interval)
     }
   }, [authenticated])
+
+  async function fetchEventSettings() {
+    try {
+      const res = await fetch('/api/events')
+      const data = await res.json()
+      setCurrentEvent(data)
+    } catch (err) {
+      console.error('Failed to fetch event settings', err)
+    }
+  }
 
   async function fetchVoters() {
     try {
@@ -112,10 +126,22 @@ export default function OfficerPage() {
       <div className="max-w-6xl w-full mx-auto relative z-10">
         <div className="flex justify-between items-start mb-8">
           <div>
-            <a href="/" className="inline-flex items-center gap-3 text-white bg-[#62609f] hover:bg-[#4e4d80] font-bold mb-10 px-8 py-3.5 rounded-full transition-all text-base group shadow-2xl border-2 border-white/30 relative z-[50] whitespace-nowrap">
-              <span className="transition-transform group-hover:-translate-x-1">←</span> Dashboard Home
-            </a>
-            <h1 className="text-4xl font-bold text-slate-900">Officer Dashboard</h1>
+            <div className="flex items-center gap-4 mb-4">
+              <a href="/" className="inline-flex items-center gap-3 text-white bg-[#62609f] hover:bg-[#4e4d80] font-bold px-6 py-2.5 rounded-full transition-all text-sm group shadow-lg border-2 border-white/30 relative z-[50] whitespace-nowrap">
+                <span className="transition-transform group-hover:-translate-x-1">←</span> Home
+              </a>
+              <a href="/officer/settings" className="inline-flex items-center gap-2 text-[#62609f] bg-white hover:bg-slate-50 font-bold px-6 py-2.5 rounded-full transition-all text-sm shadow-lg border-2 border-[#62609f]/10 relative z-[50] whitespace-nowrap">
+                ⚙️ Settings
+              </a>
+            </div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-4xl font-bold text-slate-900">Officer Dashboard</h1>
+              {currentEvent?.eventId && (
+                <span className="badge badge-neutral text-[10px] mt-1 opacity-70">
+                  Event: {currentEvent.eventId}
+                </span>
+              )}
+            </div>
             <p className="text-slate-600 mt-1">Manage voter verification</p>
           </div>
           <button

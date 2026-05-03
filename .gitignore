@@ -48,3 +48,6 @@ next-env.d.ts
 .DS_Store
 
 data/voters.json
+data/events.json
+
+.vercel

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
+import { getEventSettings } from '@/lib/events'
 
 const DB_PATH = path.join(process.cwd(), 'data', 'voters.json')
 
@@ -15,6 +16,9 @@ function writeVoters(voters) {
 
 export async function POST(request) {
   try {
+    const settings = getEventSettings()
+    // In a production app, you would use settings.apiKey here to verify the request with SOBA
+    
     const body = await request.json()
     const { email } = body
 
