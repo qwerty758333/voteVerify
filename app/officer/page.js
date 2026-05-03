@@ -95,15 +95,17 @@ export default function OfficerPage() {
             <h1 className="text-3xl font-bold mb-2 text-slate-900">Officer Access</h1>
             <p className="text-slate-600 mb-8">Enter PIN</p>
 
-            <input
-              type="password"
-              placeholder="••••"
-              value={pin}
-              onChange={e => setPin(e.target.value)}
-              onKeyPress={e => e.key === 'Enter' && handlePinLogin()}
-              maxLength="4"
-              className="text-center text-3xl tracking-widest mb-4 font-bold"
-            />
+            <div className="flex justify-center w-full">
+              <input
+                type="password"
+                placeholder="••••"
+                value={pin}
+                onChange={e => setPin(e.target.value)}
+                onKeyPress={e => e.key === 'Enter' && handlePinLogin()}
+                maxLength="4"
+                className="text-center text-3xl tracking-widest mb-4 font-bold max-w-[200px]"
+              />
+            </div>
 
             {pinError && <div className="alert alert-error">{pinError}</div>}
 
@@ -130,7 +132,7 @@ export default function OfficerPage() {
               <a href="/" className="inline-flex items-center gap-3 text-white bg-[#62609f] hover:bg-[#4e4d80] font-bold px-6 py-2.5 rounded-full transition-all text-sm group shadow-lg border-2 border-white/30 relative z-[50] whitespace-nowrap">
                 <span className="transition-transform group-hover:-translate-x-1">←</span> Home
               </a>
-              <a href="/officer/settings" className="inline-flex items-center gap-2 text-[#62609f] bg-white hover:bg-slate-50 font-bold px-6 py-2.5 rounded-full transition-all text-sm shadow-lg border-2 border-[#62609f]/10 relative z-[50] whitespace-nowrap">
+              <a href="/officer/settings" className="inline-flex items-center gap-2 text-white bg-[#62609f] hover:bg-[#4e4d80] font-bold px-6 py-2.5 rounded-full transition-all text-sm shadow-lg border-2 border-white/30 relative z-[50] whitespace-nowrap">
                 ⚙️ Settings
               </a>
             </div>
@@ -167,12 +169,16 @@ export default function OfficerPage() {
         </div>
 
         {/* Search */}
-        <div className="mb-6">
-          <input
-            placeholder="🔍 Search by name or NIC..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
+        <div className="mb-8 max-w-2xl mx-auto">
+          <div className="relative group">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#62609f] transition-colors">🔍</span>
+            <input
+              placeholder="Search by name or NIC..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="pl-12 w-full bg-white/80 backdrop-blur-sm border-2 border-[#62609f]/10 focus:border-[#62609f] focus:bg-white"
+            />
+          </div>
         </div>
 
         {/* Voters */}

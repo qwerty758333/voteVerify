@@ -59,7 +59,7 @@ export default function SettingsPage() {
         <div className="flex flex-col items-start w-full">
           <button 
             onClick={() => router.back()} 
-            className="inline-flex items-center gap-3 text-white bg-[#62609f] hover:bg-[#4e4d80] font-bold mb-8 px-6 py-3 rounded-full transition-all text-sm shadow-2xl border-2 border-white/30 relative z-[50] whitespace-nowrap"
+            className="inline-flex items-center gap-3 text-white bg-[#62609f] hover:bg-[#4e4d80] font-bold mb-8 px-6 py-3 rounded-full transition-all text-sm group shadow-2xl border-2 border-white/30 relative z-[50] whitespace-nowrap"
           >
             <span className="transition-transform group-hover:-translate-x-1">←</span> Back to Dashboard
           </button>
