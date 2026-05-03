@@ -167,7 +167,7 @@ export default function OfficerPage() {
         </div>
 
         {/* Search Bar */}
-        <div className="mb-10 w-full max-w-md mx-auto">
+        <div className="mb-10 w-full max-w-xs mx-auto">
           <div className="relative group">
             <span className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 text-xl pointer-events-none z-20 group-focus-within:text-[#62609f] transition-colors">🔍</span>
             <input
