@@ -166,15 +166,15 @@ export default function OfficerPage() {
           </div>
         </div>
 
-        {/* Search Bar */}
-        <div className="mb-10 w-full max-w-xs mx-auto">
-          <div className="relative group">
-            <span className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 text-xl pointer-events-none z-20 group-focus-within:text-[#62609f] transition-colors">🔍</span>
+        {/* Compact Search Bar */}
+        <div className="mb-10 flex justify-center">
+          <div className="relative w-[200px]">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔍</span>
             <input
-              placeholder="Search by name or NIC number..."
+              placeholder="Search..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="pl-16 pr-8 py-5 w-full bg-white/70 backdrop-blur-xl border-2 border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] focus:shadow-[0_8px_30px_rgb(98,96,159,0.1)] transition-all rounded-3xl text-lg"
+              className="pl-9 pr-3 py-2 w-full bg-white border border-slate-200 rounded-lg text-sm shadow-sm focus:border-[#62609f]"
             />
           </div>
         </div>
