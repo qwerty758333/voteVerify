@@ -168,13 +168,13 @@ export default function OfficerPage() {
 
         {/* Distinctive Dark Search Bar */}
         <div className="mb-12 flex justify-center w-full px-4">
-          <div className="relative w-full max-w-[360px] group">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 text-lg group-focus-within:text-white transition-colors z-20">🔍</span>
+          <div className="relative w-full max-w-[480px] group">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg group-focus-within:text-white transition-colors z-20">🔍</span>
             <input
-              placeholder="Search voters..."
+              placeholder="Search voters by name or NIC..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="pl-12 pr-6 py-4 w-full bg-slate-800 border-2 border-slate-700 text-white placeholder-slate-400 rounded-2xl shadow-xl focus:border-[#62609f] focus:ring-4 focus:ring-[#62609f]/20 transition-all font-medium text-base"
+              className="pl-12 pr-6 py-4 w-full bg-slate-950 border-2 border-slate-800 text-white placeholder-slate-500 rounded-2xl shadow-2xl focus:border-[#62609f] focus:ring-4 focus:ring-[#62609f]/10 transition-all font-medium text-base"
             />
           </div>
         </div>
