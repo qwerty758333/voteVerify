@@ -245,3 +245,80 @@ input::placeholder {
   color: #166534;
   border: 1px solid #bbf7d0;
 }
+
+/*
+ * Voter login / register: compact fields matching primary actions.
+ * (Tailwind utilities + global input { width:100% } were stretching inputs full card width.)
+ * Rules live last so they win over utilities where we need explicit sizing.
+ */
+.voter-form-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  --voter-field-max-w: 16rem;
+  --voter-control-h: 2.5rem;
+  --voter-pad-x: 1rem;
+}
+
+.voter-form-controls .alert {
+  align-self: stretch;
+  width: 100%;
+  max-width: none;
+}
+
+.voter-form-controls input.input-btn-match {
+  -webkit-appearance: none;
+  appearance: none;
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  max-width: var(--voter-field-max-w);
+  height: var(--voter-control-h);
+  min-height: var(--voter-control-h);
+  max-height: var(--voter-control-h);
+  padding: 0 var(--voter-pad-x);
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.voter-form-controls button.btn {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: var(--voter-field-max-w);
+  height: var(--voter-control-h);
+  min-height: var(--voter-control-h);
+  max-height: var(--voter-control-h);
+  padding: 0 var(--voter-pad-x);
+  font-size: 1rem;
+}
+
+.voter-form-controls .voter-form-actions {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  max-width: var(--voter-field-max-w);
+}
+
+.voter-form-controls > p {
+  align-self: stretch;
+  text-align: center;
+}
+
+/* Global `a` uses button padding; keep footer links inline in voter forms */
+.voter-form-controls p a {
+  display: inline;
+  width: auto;
+  height: auto;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: inherit;
+  font-weight: 600;
+  box-shadow: none;
+}

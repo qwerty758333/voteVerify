@@ -1,46 +1,24 @@
-import { useState, useEffect } from 'react'
+'use client'
+import { buildSobaRegistrationUrl } from '@/lib/sobaVerifyLink'
 
-export default function SobaButton({ email }) {
-  const [eventId, setEventId] = useState('')
+export default function SobaButton({ email, onAfterOpen, label = 'Complete Face Verification →', className = '' }) {
+  function handleClick() {
+    const em = String(email || '').trim()
+    if (!em) return
 
-  useEffect(() => {
-    async function fetchSettings() {
-      try {
-        const res = await fetch('/api/events')
-        const data = await res.json()
-        if (data.eventId) setEventId(data.eventId)
-      } catch (err) {
-        console.error('Failed to fetch SOBA settings', err)
-      }
-    }
-    fetchSettings()
-  }, [])
-
-  function handleVerify() {
-    if (!email) {
-      alert('Email not found. Please register again.')
-      return
-    }
-
-    // Use dynamic eventId from settings or fallback to env
-    const currentEventId = eventId || process.env.NEXT_PUBLIC_SOBA_EVENT_ID || '2460005'
-    
-    // Save email for callback
-    localStorage.setItem('voterEmail', email)
-    
-    // Build SOBA verification URL using dynamic Event ID
-    const sobaUrl = `https://poh.crowdsnap.ai/verify?event_id=${currentEventId}&email=${encodeURIComponent(email)}`
-    
-    // Open in new window
-    window.open(sobaUrl, 'sobaVerify', 'width=800,height=600')
+    const url = buildSobaRegistrationUrl(em)
+    window.open(url, '_blank', 'noopener,noreferrer')
+    onAfterOpen?.()
   }
 
   return (
     <button
-      onClick={handleVerify}
-      className="w-full bg-[#E8A020] text-[#0D1B3E] font-bold py-3 rounded hover:opacity-90"
+      type="button"
+      onClick={handleClick}
+      disabled={!String(email || '').trim()}
+      className={`w-full bg-[#E8A020] text-[#0D1B3E] font-bold py-3 px-4 rounded-xl hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2 min-h-[3rem] ${className}`}
     >
-      Verify with SOBA →
+      {label}
     </button>
   )
 }

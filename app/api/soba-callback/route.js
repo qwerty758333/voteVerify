@@ -1,39 +1,52 @@
 import { NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
-import { getEventSettings } from '@/lib/events'
+import { getResolvedSobaCredentials } from '@/lib/events'
 
 const DB_PATH = path.join(process.cwd(), 'data', 'voters.json')
 
 function readVoters() {
-  if (!fs.existsSync(DB_PATH)) return []
-  return JSON.parse(fs.readFileSync(DB_PATH, 'utf8'))
+  try {
+    if (!fs.existsSync(DB_PATH)) return []
+    const content = fs.readFileSync(DB_PATH, 'utf8')
+    if (!content?.trim()) return []
+    return JSON.parse(content)
+  } catch {
+    return []
+  }
 }
 
 function writeVoters(voters) {
+  fs.mkdirSync(path.dirname(DB_PATH), { recursive: true })
   fs.writeFileSync(DB_PATH, JSON.stringify(voters, null, 2))
+}
+
+function markVerifiedByEmail(email) {
+  if (!email) return
+  const voters = readVoters()
+  const index = voters.findIndex(v => v.email === email)
+  if (index !== -1) {
+    voters[index].sobaVerified = true
+    voters[index].verifiedAt = new Date().toISOString()
+    writeVoters(voters)
+  }
 }
 
 export async function POST(request) {
   try {
-    const settings = getEventSettings()
-    // In a production app, you would use settings.apiKey here to verify the request with SOBA
-    
+    const creds = getResolvedSobaCredentials()
+    if (!creds) {
+      console.warn('soba-callback: SOBA credentials not configured')
+    }
+
     const body = await request.json()
-    const { email } = body
+    const email = body.email
 
     if (!email) {
       return NextResponse.json({ error: 'Email required' }, { status: 400 })
     }
 
-    const voters = readVoters()
-    const index = voters.findIndex(v => v.email === email)
-
-    if (index !== -1) {
-      voters[index].sobaVerified = true
-      voters[index].verifiedAt = new Date().toISOString()
-      writeVoters(voters)
-    }
+    markVerifiedByEmail(String(email).trim())
 
     return NextResponse.json({ success: true })
   } catch (error) {
@@ -42,25 +55,18 @@ export async function POST(request) {
   }
 }
 
-// Handle GET redirect from SOBA
 export async function GET(request) {
-  // Extract email from query params or redirect to home
+  const creds = getResolvedSobaCredentials()
+  if (!creds) {
+    console.warn('soba-callback GET: SOBA credentials not configured')
+  }
+
   const { searchParams } = new URL(request.url)
   const email = searchParams.get('email')
 
   if (email) {
-    // Mark as verified in database
-    const DB_PATH = path.join(process.cwd(), 'data', 'voters.json')
-    const voters = JSON.parse(fs.readFileSync(DB_PATH, 'utf8'))
-    const index = voters.findIndex(v => v.email === email)
-    
-    if (index !== -1) {
-      voters[index].sobaVerified = true
-      voters[index].verifiedAt = new Date().toISOString()
-      fs.writeFileSync(DB_PATH, JSON.stringify(voters, null, 2))
-    }
+    markVerifiedByEmail(String(email).trim())
   }
 
-  // Redirect to success page
   return NextResponse.redirect(new URL('/voter/success', request.url))
 }
