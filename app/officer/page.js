@@ -1,44 +1,45 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import FullBackground from '@/app/components/FullBackground'
 
-const OFFICER_SESSION_KEY = 'officerAuthenticated'
-
-export default function OfficerPage() {
+export default function OfficerDashboard() {
+  const [authenticated, setAuthenticated] = useState(false)
+  const [pin, setPin] = useState('')
+  const [pinError, setPinError] = useState('')
+  
   const [voters, setVoters] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [marking, setMarking] = useState(null)
-  const [authenticated, setAuthenticated] = useState(false)
-  const [pin, setPin] = useState('')
-  const [pinError, setPinError] = useState('')
   const [syncing, setSyncing] = useState(false)
   const [syncMessage, setSyncMessage] = useState('')
-
   const [currentEvent, setCurrentEvent] = useState(null)
 
-  const OFFICER_PIN = '1234'
+  const router = useRouter()
+
+  function handleLogout() {
+    setAuthenticated(false)
+    setPin('')
+    localStorage.removeItem('officerAuth')
+  }
+
+  function handlePinLogin() {
+    if (pin === '1234') {
+      setAuthenticated(true)
+      localStorage.setItem('officerAuth', 'true')
+      setPinError('')
+    } else {
+      setPinError('Invalid PIN')
+    }
+  }
 
   useEffect(() => {
-    if (typeof window === 'undefined') return
-    if (localStorage.getItem(OFFICER_SESSION_KEY) === 'true') {
+    if (localStorage.getItem('officerAuth') === 'true') {
       setAuthenticated(true)
     }
   }, [])
-
-  function handlePinLogin() {
-    if (pin === OFFICER_PIN) {
-      localStorage.setItem(OFFICER_SESSION_KEY, 'true')
-      setAuthenticated(true)
-      setPinError('')
-      fetchVoters()
-      fetchEventSettings()
-    } else {
-      setPinError('Incorrect PIN')
-      setPin('')
-    }
-  }
 
   useEffect(() => {
     if (authenticated) {
@@ -50,9 +51,8 @@ export default function OfficerPage() {
   }, [authenticated])
 
   useEffect(() => {
-    // silent background sync on load
     if (authenticated) {
-      syncSobaStatus(true)
+      syncAndRefresh(true)
     }
   }, [authenticated])
 
@@ -78,23 +78,96 @@ export default function OfficerPage() {
     }
   }
 
-  async function syncSobaStatus(silent = false) {
+  async function syncAndRefresh(silent = false) {
     if (syncing) return
     setSyncing(true)
-    if (!silent) setSyncMessage('')
+    if (!silent) setSyncMessage('Syncing...')
+
     try {
-      const res = await fetch('/api/soba-sync', { method: 'POST' })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        if (!silent) setSyncMessage(data.error || 'Sync failed')
+      // 1. Get credentials from backend
+      const eventsRes = await fetch('/api/events')
+      const events = await eventsRes.json()
+      
+      console.log('Events config:', {
+        eventId: events.eventId,
+        hasApiKey: !!events.apiKey
+      })
+
+      const apiKey = events.apiKey || ''
+      const eventId = events.eventId || ''
+
+      if (!apiKey || !eventId) {
+        if (!silent) setSyncMessage('Event not configured. Go to Settings first.')
+        setSyncing(false)
         return
       }
-      if (!silent) {
-        setSyncMessage(`Synced ${data.synced || 0} voters (checked ${data.total_checked || 0})`)
+
+      // 2. Get all voters
+      const votersRes = await fetch('/api/voters')
+      const voters = await votersRes.json()
+      
+      // 3. Filter unverified
+      const unverified = voters.filter(v => !v.sobaVerified)
+
+      let synced = 0
+
+      // 4. Check each voter from BROWSER (not backend)
+      for (const voter of unverified) {
+        try {
+          console.log('Sending to SOBA:', {
+            org_id: '750006',
+            event_id: String(eventId),
+            email: voter.email,
+            api_key: apiKey?.substring(0, 8) + '...'
+          })
+
+          const response = await fetch(
+            'https://poc.soba.network/api/add-attendee',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': apiKey
+              },
+              body: JSON.stringify({
+                org_id: '750006',
+                event_id: String(eventId),
+                email: voter.email,
+                api_key: apiKey
+              })
+            }
+          )
+
+          const data = await response.json()
+          console.log('Full SOBA response:', JSON.stringify(data))
+
+          // If verified, tell OUR backend to update
+          if (data?.data?.face_id_registered === true) {
+            await fetch('/api/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: voter.email })
+            })
+            synced++
+          }
+
+          // Small delay between requests
+          await new Promise(r => setTimeout(r, 300))
+        } catch (err) {
+          console.error('Error checking voter:', voter.email, err)
+        }
       }
+
+      // 5. Refresh voter list
       await fetchVoters()
-    } catch {
-      if (!silent) setSyncMessage('Network error during sync')
+
+      if (!silent) {
+        setSyncMessage(synced > 0 ? `✓ ${synced} voter(s) verified` : '✓ Status up to date')
+        setTimeout(() => setSyncMessage(''), 3000)
+      }
+    } catch (err) {
+      console.error('Sync error:', err)
+      if (!silent) setSyncMessage('✗ Sync failed')
     } finally {
       setSyncing(false)
     }
@@ -113,62 +186,51 @@ export default function OfficerPage() {
     }
   }
 
-  function handleLogout() {
-    localStorage.removeItem(OFFICER_SESSION_KEY)
-    setAuthenticated(false)
-    setPin('')
-    setVoters([])
-    setLoading(true)
+  function validateNIC(nic) {
+    if (!nic) return false
+    const cleaned = nic.trim().toUpperCase()
+    const oldFormat = /^[0-9]{9}[VX]$/
+    const newFormat = /^[0-9]{12}$/
+    return oldFormat.test(cleaned) || newFormat.test(cleaned)
   }
 
   function getNICInfo(nic) {
-    if (!nic) return null
     const cleaned = nic.trim().toUpperCase()
-    let birthYear, gender, dayOfYear
-
+    let birthYear
+    let gender
     if (cleaned.length === 10) {
-      birthYear = 1900 + parseInt(cleaned.substring(0, 2))
-      dayOfYear = parseInt(cleaned.substring(2, 5))
-    } else {
-      birthYear = parseInt(cleaned.substring(0, 4))
-      dayOfYear = parseInt(cleaned.substring(4, 7))
+      birthYear = '19' + cleaned.substring(0, 2)
+      const dayValue = parseInt(cleaned.substring(2, 5))
+      gender = dayValue > 500 ? 'Female' : 'Male'
+    } else if (cleaned.length === 12) {
+      birthYear = cleaned.substring(0, 4)
+      const dayValue = parseInt(cleaned.substring(4, 7))
+      gender = dayValue > 500 ? 'Female' : 'Male'
     }
-
-    if (dayOfYear > 500) {
-      gender = 'Female'
-    } else {
-      gender = 'Male'
-    }
-
-    return { birthYear, gender }
+    const age = birthYear ? new Date().getFullYear() - parseInt(birthYear) : 0
+    return { birthYear, gender, age }
   }
 
-  const filtered = voters.filter(
-    v => v.name.toLowerCase().includes(search.toLowerCase()) || v.nic.includes(search)
+  const filtered = voters.filter(v => 
+    v.name.toLowerCase().includes(search.toLowerCase()) ||
+    v.nic.toLowerCase().includes(search.toLowerCase())
   )
 
-  const totalVoters = voters.length
   const verifiedCount = voters.filter(v => v.sobaVerified).length
-  const votedCount = voters.filter(v => v.hasVoted).length
-
-  const activeEventLabel =
-    currentEvent?.configured && currentEvent?.eventId
-      ? currentEvent.eventId
-      : 'None configured'
+  const votedCount = voters.filter(v => v.voted).length
+  const totalVoters = voters.length
+  const activeEventLabel = currentEvent?.eventName || 'General Election 2026'
 
   if (!authenticated) {
     return (
-      <main className="min-h-screen w-full flex items-center justify-center p-4 sm:p-8 relative">
+      <main className="min-h-screen w-full flex items-center justify-center p-4 relative">
         <FullBackground />
-        <div className="w-full max-w-[480px] relative z-10 py-10 mx-auto">
-          <div className="flex flex-col items-start w-full">
-            <a
-              href="/"
-              className="inline-flex items-center gap-3 text-white bg-[#62609f] active:bg-[#3b3960] hover:bg-[#4e4d80] font-bold mb-8 px-6 py-3 rounded-full transition-all text-sm shadow-2xl border-2 border-white/30 relative z-[50] whitespace-nowrap"
-            >
-              <span className="transition-transform group-hover:-translate-x-1">←</span> Back to Home
-            </a>
-
+        <div className="w-full max-w-md relative z-10">
+          <div className="flex flex-col items-center">
+            <Link href="/" className="btn btn-secondary mb-8 shadow-xl border-2 border-white/20">
+              ← Back to Home
+            </Link>
+            
             <div className="w-full">
               <div className="card">
                 <h1 className="text-3xl font-bold mb-2 text-slate-900">Officer Access</h1>
@@ -222,11 +284,11 @@ export default function OfficerPage() {
               </Link>
               <button
                 type="button"
-                onClick={() => syncSobaStatus(false)}
+                onClick={() => syncAndRefresh(false)}
                 disabled={syncing}
                 className="inline-flex items-center gap-2 text-white bg-slate-900 hover:bg-slate-800 font-bold px-6 py-2.5 rounded-full transition-all text-sm shadow-lg border-2 border-white/10 relative z-[50] whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {syncing ? 'Syncing…' : 'Sync SOBA Status'}
+                {syncing ? 'Syncing...' : '🔄 Sync SOBA Status'}
               </button>
             </div>
             <div className="flex flex-col gap-2">
@@ -277,7 +339,7 @@ export default function OfficerPage() {
         {loading ? (
           <div className="card text-center text-slate-600">Loading...</div>
         ) : filtered.length === 0 ? (
-          <div className="card text-center text-slate-600">No voters</div>
+          <div className="card text-center text-slate-600">No voters found</div>
         ) : (
           <div className="space-y-3">
             {filtered.map(voter => {
@@ -298,39 +360,39 @@ export default function OfficerPage() {
                     </p>
                     {nicInfo && (
                       <p className="text-[10px] text-slate-400 font-bold">
-                        BORN: {nicInfo.birthYear}
+                        DOB: {nicInfo.birthYear} • {nicInfo.gender} • {nicInfo.age}Y
                       </p>
                     )}
                   </div>
 
-                <div className="flex gap-3 flex-wrap">
-                  <span className={`badge ${voter.sobaVerified ? 'badge-warning' : 'badge-neutral'}`}>
-                    {voter.sobaVerified ? '✓ Registered' : '○ Not Registered'}
-                  </span>
+                  <div className="flex items-center gap-4">
+                    <div className="text-right flex flex-col items-end">
+                      <span className={`badge ${voter.sobaVerified ? 'badge-success' : 'badge-warning'} mb-1`}>
+                        {voter.sobaVerified ? '✓ SOBA Verified' : '✕ Not Verified'}
+                      </span>
+                      {voter.voted ? (
+                        <span className="badge badge-success">✓ Voted</span>
+                      ) : (
+                        <span className="badge badge-neutral">Pending</span>
+                      )}
+                    </div>
 
-                  {voter.sobaVerified && (
-                    <span className={`badge ${voter.faceVerifiedToday ? 'badge-success' : 'badge-neutral'}`}>
-                      {voter.faceVerifiedToday ? '✓ Identity Confirmed' : '○ ID Pending'}
-                    </span>
-                  )}
-
-                  {voter.hasVoted ? (
-                    <span className="badge badge-primary">✓ Voted</span>
-                  ) : (voter.sobaVerified && voter.faceVerifiedToday) ? (
-                    <button
-                      type="button"
-                      onClick={() => markAsVoted(voter.id)}
-                      disabled={marking === voter.id}
-                      className="btn btn-primary text-sm py-2 px-4"
-                    >
-                      {marking === voter.id ? 'Marking...' : 'Mark Voted'}
-                    </button>
-                  ) : (
-                    <span className="badge badge-neutral">Ineligible</span>
-                  )}
+                    {voter.sobaVerified && !voter.voted ? (
+                      <button
+                        type="button"
+                        onClick={() => markAsVoted(voter.id)}
+                        disabled={marking === voter.id}
+                        className="btn btn-primary text-sm py-2 px-4"
+                      >
+                        {marking === voter.id ? 'Marking...' : 'Mark Voted'}
+                      </button>
+                    ) : (
+                      <span className="badge badge-neutral">Ineligible</span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
 

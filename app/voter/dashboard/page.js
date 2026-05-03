@@ -22,7 +22,7 @@ export default function VoterDashboardPage() {
     setVoter(parsed)
     // Auto-check SOBA status when returning after verification
     if (parsed && parsed.email && parsed.sobaVerified !== true) {
-      checkStatus(parsed.email)
+      checkMyStatus()
     }
   }, [router])
 
@@ -42,32 +42,83 @@ export default function VoterDashboardPage() {
     return () => window.removeEventListener('focus', onFocus)
   }, [])
 
-  async function checkStatus(email) {
-    const em = String(email || '').trim()
-    if (!em) return
+  async function checkMyStatus() {
+    if (!voter || !voter.email) return
 
     setStatusLoading(true)
     setStatusMessage('')
     setVerifyError('')
 
     try {
-      const res = await fetch(`/api/soba-status?email=${encodeURIComponent(em)}`)
-      const data = await res.json().catch(() => ({}))
+      // 1. Get credentials from backend
+      const eventsRes = await fetch('/api/events')
+      const events = await eventsRes.json()
+      
+      console.log('Events config:', {
+        eventId: events.eventId,
+        hasApiKey: !!events.apiKey
+      })
 
-      if (!res.ok) {
-        setVerifyError(data.error || 'Status check failed.')
+      const apiKey = events.apiKey || ''
+      const eventId = events.eventId || ''
+
+      if (!apiKey || !eventId) {
+        setVerifyError('Event not configured. Go to Settings first.')
+        setStatusLoading(false)
         return
       }
 
-      if (data.verified === true) {
-        const updatedVoter = { ...voter, sobaVerified: true, verifiedAt: data.updatedAt || new Date().toISOString() }
-        localStorage.setItem('currentVoter', JSON.stringify(updatedVoter))
-        setVoter(updatedVoter)
-        setStatusMessage('✓ Verification confirmed! You are now eligible to vote.')
+      // 2. Call SOBA directly from browser
+      console.log('Sending to SOBA:', {
+        org_id: '750006',
+        event_id: String(eventId),
+        email: voter.email,
+        api_key: apiKey?.substring(0, 8) + '...'
+      })
+
+      const response = await fetch(
+        'https://poc.soba.network/api/add-attendee',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey
+          },
+          body: JSON.stringify({
+            org_id: '750006',
+            event_id: String(eventId),
+            email: voter.email,
+            api_key: apiKey
+          })
+        }
+      )
+
+      const data = await response.json()
+      console.log('Full SOBA response:', JSON.stringify(data))
+
+      if (data?.data?.face_id_registered === true) {
+        // Update our backend
+        await fetch('/api/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: voter.email })
+        })
+
+        // Refresh local state
+        const res = await fetch('/api/voters')
+        const voters = await res.json()
+        const updated = voters.find(v => v.email.toLowerCase().trim() === voter.email.toLowerCase().trim())
+        
+        if (updated) {
+          localStorage.setItem('currentVoter', JSON.stringify(updated))
+          setVoter(updated)
+          setStatusMessage('✓ Verified!')
+        }
       } else {
         setStatusMessage('Not verified yet. Complete face scan first.')
       }
-    } catch {
+    } catch (err) {
+      console.error('Status check error:', err)
       setVerifyError('Network error while checking status.')
     } finally {
       setStatusLoading(false)
@@ -201,11 +252,11 @@ export default function VoterDashboardPage() {
 
                     <button
                       type="button"
-                      onClick={() => checkStatus(voter.email)}
+                      onClick={checkMyStatus}
                       disabled={statusLoading}
                       className="btn btn-secondary w-full max-w-md mt-3"
                     >
-                      {statusLoading ? 'Checking…' : 'Check Verification Status'}
+                      {statusLoading ? 'Checking...' : 'Check My Status'}
                     </button>
                   </div>
                 )}

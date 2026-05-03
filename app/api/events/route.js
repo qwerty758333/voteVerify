@@ -1,9 +1,16 @@
 import { NextResponse } from 'next/server'
-import { getPublicEventSettings, saveEventSettings } from '@/lib/events'
+import { getPublicEventSettings, saveEventSettings, getResolvedSobaCredentials } from '@/lib/events'
 
 export async function GET() {
   const events = getPublicEventSettings()
-  return NextResponse.json(events)
+  // We need to expose credentials for frontend-side sync
+  const creds = getResolvedSobaCredentials()
+  return NextResponse.json({
+    ...events,
+    eventId: creds?.eventId || '',
+    apiKey: creds?.apiKey || '',
+    org_id: '750006'
+  })
 }
 
 export async function POST(request) {

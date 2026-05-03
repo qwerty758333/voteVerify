@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import SobaButton from '@/app/components/SobaButton'
 import FullBackground from '@/app/components/FullBackground'
 
@@ -150,7 +151,7 @@ export default function VoterPage() {
                 <div className="voter-form-controls space-y-4">
                   <input placeholder="Full Name" value={name} onChange={e => setName(e.target.value)} className="input-btn-match" />
                   
-                  <div className="w-full relative">
+                  <div className="w-full max-w-[16rem] relative mx-auto">
                     <input 
                       placeholder="NIC Number" 
                       value={nic} 
