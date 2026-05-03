@@ -121,10 +121,10 @@ export default function OfficerPage() {
   return (
     <main className="flex-1 w-full flex flex-col items-center justify-start py-12 px-6 relative">
       <FullBackground />
-      <div className="max-w-6xl w-full mx-auto relative z-10">
-        <div className="flex justify-between items-start mb-8">
+      <div className="max-w-4xl w-full mx-auto relative z-10">
+        <div className="flex justify-between items-start mb-10">
           <div>
-            <div className="flex items-center gap-4 mb-4">
+            <div className="flex items-center gap-4 mb-5">
               <a href="/" className="inline-flex items-center gap-3 text-white bg-[#62609f] hover:bg-[#4e4d80] font-bold px-6 py-2.5 rounded-full transition-all text-sm group shadow-lg border-2 border-white/30 relative z-[50] whitespace-nowrap">
                 <span className="transition-transform group-hover:-translate-x-1">←</span> Home
               </a>
@@ -133,25 +133,25 @@ export default function OfficerPage() {
               </a>
             </div>
             <div className="flex items-center gap-3">
-              <h1 className="text-4xl font-bold text-slate-900">Officer Dashboard</h1>
+              <h1 className="text-4xl font-black text-slate-900 tracking-tight">Officer Dashboard</h1>
               {currentEvent?.eventId && (
-                <span className="badge badge-neutral text-[10px] mt-1 opacity-70">
-                  Event: {currentEvent.eventId}
+                <span className="badge badge-neutral text-[10px] mt-1 opacity-70 bg-slate-200">
+                  ID: {currentEvent.eventId}
                 </span>
               )}
             </div>
-            <p className="text-slate-600 mt-1">Manage voter verification</p>
+            <p className="text-slate-600 font-medium mt-1">Real-time voter management</p>
           </div>
           <button
             onClick={() => { setAuthenticated(false); setPin('') }}
-            className="btn btn-danger"
+            className="btn btn-danger shadow-md"
           >
             Logout
           </button>
         </div>
 
         {/* Unified Stats Card */}
-        <div className="card mb-8">
+        <div className="card mb-10 border-b-4 border-[#62609f]/20">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:divide-x divide-slate-100">
             {[
               { label: 'Total Registered', value: totalVoters },
@@ -159,22 +159,22 @@ export default function OfficerPage() {
               { label: 'Voted', value: votedCount }
             ].map(({ label, value }) => (
               <div key={label} className="flex flex-col items-center md:items-start md:px-8 first:pl-0 last:pr-0">
-                <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-2">{label}</p>
-                <p className="text-4xl font-black text-[#62609f]">{value}</p>
+                <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-2">{label}</p>
+                <p className="text-5xl font-black text-[#62609f]">{value}</p>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Compact Search Bar */}
-        <div className="mb-10 flex justify-center">
-          <div className="relative w-[200px]">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔍</span>
+        {/* Distinctive Dark Search Bar */}
+        <div className="mb-12 flex justify-center w-full px-4">
+          <div className="relative w-full max-w-[360px] group">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 text-lg group-focus-within:text-white transition-colors z-20">🔍</span>
             <input
-              placeholder="Search..."
+              placeholder="Search voters..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="pl-9 pr-3 py-2 w-full bg-white border border-slate-200 rounded-lg text-sm shadow-sm focus:border-[#62609f]"
+              className="pl-12 pr-6 py-4 w-full bg-slate-800 border-2 border-slate-700 text-white placeholder-slate-400 rounded-2xl shadow-xl focus:border-[#62609f] focus:ring-4 focus:ring-[#62609f]/20 transition-all font-medium text-base"
             />
           </div>
         </div>
