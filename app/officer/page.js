@@ -95,7 +95,7 @@ export default function OfficerPage() {
             <h1 className="text-3xl font-bold mb-2 text-slate-900">Officer Access</h1>
             <p className="text-slate-600 mb-8">Enter PIN</p>
 
-            <div className="flex justify-center w-full">
+            <div className="flex flex-col items-center w-full gap-4">
               <input
                 type="password"
                 placeholder="••••"
@@ -103,14 +103,10 @@ export default function OfficerPage() {
                 onChange={e => setPin(e.target.value)}
                 onKeyPress={e => e.key === 'Enter' && handlePinLogin()}
                 maxLength="4"
-                className="text-center text-3xl tracking-widest mb-4 font-bold max-w-[200px]"
+                className="text-center text-3xl tracking-widest font-bold w-[200px]"
               />
-            </div>
-
-            {pinError && <div className="alert alert-error">{pinError}</div>}
-
-            <div className="flex justify-center mt-4 mb-4">
-              <button onClick={handlePinLogin} className="btn btn-primary w-full sm:w-auto min-w-[200px]">Login</button>
+              {pinError && <div className="alert alert-error text-sm py-2 w-[200px] text-center">{pinError}</div>}
+              <button onClick={handlePinLogin} className="btn btn-primary w-[200px]">Login</button>
             </div>
 
             <p className="text-xs text-slate-400 text-center">Demo PIN: 1234</p>
@@ -169,14 +165,14 @@ export default function OfficerPage() {
         </div>
 
         {/* Search */}
-        <div className="mb-8 max-w-2xl mx-auto">
+        <div className="mb-10 max-w-xl mx-auto px-4">
           <div className="relative group">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#62609f] transition-colors">🔍</span>
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#62609f] transition-colors z-20">🔍</span>
             <input
               placeholder="Search by name or NIC..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="pl-12 w-full bg-white/80 backdrop-blur-sm border-2 border-[#62609f]/10 focus:border-[#62609f] focus:bg-white"
+              className="pl-12 w-full bg-white/90 backdrop-blur-md border-2 border-[#62609f]/15 focus:border-[#62609f] focus:bg-white shadow-sm"
             />
           </div>
         </div>
