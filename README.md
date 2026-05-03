@@ -19,7 +19,9 @@ cd voteverify
 # Install dependencies
 npm install
 
-# Set up environment (already done for you in .env.local)
+# Set up environment
+cp .env.example .env.local
+# Then fill in your SOBA credentials in .env.local
 
 # Run on Windows
 npm run dev -- --webpack
