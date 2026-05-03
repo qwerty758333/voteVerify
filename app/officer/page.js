@@ -150,29 +150,31 @@ export default function OfficerPage() {
           </button>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          {[
-            { label: 'Total Registered', value: totalVoters },
-            { label: 'SOBA Verified', value: verifiedCount },
-            { label: 'Voted', value: votedCount }
-          ].map(({ label, value }) => (
-            <div key={label} className="card">
-              <p className="text-slate-400 text-sm mb-2">{label}</p>
-              <p className="text-4xl font-bold text-[#8180b3]">{value}</p>
-            </div>
-          ))}
+        {/* Unified Stats Card */}
+        <div className="card mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:divide-x divide-slate-100">
+            {[
+              { label: 'Total Registered', value: totalVoters },
+              { label: 'SOBA Verified', value: verifiedCount },
+              { label: 'Voted', value: votedCount }
+            ].map(({ label, value }) => (
+              <div key={label} className="flex flex-col items-center md:items-start md:px-8 first:pl-0 last:pr-0">
+                <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-2">{label}</p>
+                <p className="text-4xl font-black text-[#62609f]">{value}</p>
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* Search */}
-        <div className="mb-10 max-w-xl mx-auto px-4">
+        {/* Search Bar */}
+        <div className="mb-10 w-full max-w-4xl mx-auto">
           <div className="relative group">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#62609f] transition-colors z-20">🔍</span>
+            <span className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 text-xl pointer-events-none z-20 group-focus-within:text-[#62609f] transition-colors">🔍</span>
             <input
-              placeholder="Search by name or NIC..."
+              placeholder="Search by name or NIC number..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="pl-12 w-full bg-white/90 backdrop-blur-md border-2 border-[#62609f]/15 focus:border-[#62609f] focus:bg-white shadow-sm"
+              className="pl-16 pr-8 py-5 w-full bg-white/70 backdrop-blur-xl border-2 border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] focus:shadow-[0_8px_30px_rgb(98,96,159,0.1)] transition-all rounded-3xl text-lg"
             />
           </div>
         </div>
