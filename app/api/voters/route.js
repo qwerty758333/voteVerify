@@ -1,38 +1,28 @@
 import { NextResponse } from 'next/server'
-import fs from 'fs'
-import path from 'path'
-
-const DB_PATH = path.join(process.cwd(), 'data', 'voters.json')
-
-function readVoters() {
-  try {
-    if (!fs.existsSync(DB_PATH)) {
-      return []
-    }
-    const content = fs.readFileSync(DB_PATH, 'utf8')
-    if (!content || content.trim() === '') {
-      return []
-    }
-    return JSON.parse(content)
-  } catch (err) {
-    console.error('Error reading voters:', err)
-    return []
-  }
-}
-
-function writeVoters(voters) {
-  try {
-    fs.mkdirSync(path.dirname(DB_PATH), { recursive: true })
-    fs.writeFileSync(DB_PATH, JSON.stringify(voters, null, 2))
-  } catch (err) {
-    console.error('Error writing voters:', err)
-  }
-}
+import { getCurrentEventId } from '@/lib/events'
+import {
+  readVoters,
+  readVotersNormalized,
+  writeVoters,
+  filterVotersByEvent,
+  voterMatchesEvent
+} from '@/lib/voterStore'
 
 export async function GET() {
-  const voters = readVoters()
-  console.log('Returning voters:', voters.length)
-  return NextResponse.json(voters)
+  try {
+    const eventId = getCurrentEventId()
+    const allVoters = readVotersNormalized()
+    const eventVoters = filterVotersByEvent(allVoters, eventId)
+
+    console.log(
+      `Returning ${eventVoters.length} voters for event ${eventId || '(none)'}`
+    )
+
+    return NextResponse.json(eventVoters)
+  } catch (err) {
+    console.error('GET voters error:', err)
+    return NextResponse.json([])
+  }
 }
 
 function validateNIC(nic) {
@@ -44,42 +34,59 @@ function validateNIC(nic) {
 }
 
 export async function POST(request) {
-  const { nic, email, name } = await request.json()
+  try {
+    const { nic, email, name } = await request.json()
 
-  if (!validateNIC(nic)) {
-    return NextResponse.json(
-      { error: 'Invalid NIC format' },
-      { status: 400 }
+    if (!validateNIC(nic)) {
+      return NextResponse.json(
+        { error: 'Invalid NIC format' },
+        { status: 400 }
+      )
+    }
+
+    const eventId = getCurrentEventId()
+    if (!eventId) {
+      return NextResponse.json(
+        { error: 'No active event configured. Set Event ID in officer settings.' },
+        { status: 503 }
+      )
+    }
+
+    const formattedNIC = nic.trim().toUpperCase()
+    const voters = readVoters()
+
+    const existing = voters.find(
+      v => v.nic === formattedNIC && voterMatchesEvent(v, eventId)
     )
+
+    if (existing) {
+      return NextResponse.json(
+        { error: 'Already registered for this event' },
+        { status: 400 }
+      )
+    }
+
+    const newVoter = {
+      id: Date.now().toString(),
+      eventId,
+      nic: formattedNIC,
+      email,
+      name,
+      sobaVerified: false,
+      faceVerifiedToday: false,
+      hasVoted: false,
+      registeredAt: new Date().toISOString(),
+      verifiedAt: null,
+      lastVerifiedAt: null,
+      votedAt: null
+    }
+
+    voters.push(newVoter)
+    writeVoters(voters)
+
+    return NextResponse.json({ success: true, voter: newVoter }, { status: 201 })
+  } catch (err) {
+    console.error('POST voters error:', err)
+    return NextResponse.json({ error: err.message }, { status: 500 })
   }
-
-  const formattedNIC = nic.trim().toUpperCase()
-  const voters = readVoters()
-
-  const existing = voters.find(v => v.nic === formattedNIC)
-  if (existing) {
-    return NextResponse.json(
-      { error: 'This NIC is already registered' },
-      { status: 400 }
-    )
-  }
-
-  const newVoter = {
-    id: Date.now().toString(),
-    nic: formattedNIC,
-    email,
-    name,
-    sobaVerified: false,
-    faceVerifiedToday: false,
-    hasVoted: false,
-    registeredAt: new Date().toISOString(),
-    verifiedAt: null,
-    lastVerifiedAt: null,
-    votedAt: null
-  }
-
-  voters.push(newVoter)
-  writeVoters(voters)
-
-  return NextResponse.json(newVoter, { status: 201 })
 }

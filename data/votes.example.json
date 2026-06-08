@@ -1,0 +1,15 @@
+{
+  "votes": [
+    {
+      "id": "vote_1717000000000",
+      "eventId": "2790001",
+      "voterId": "1717000000000",
+      "choice": "Candidate A",
+      "timestamp": "2026-01-15T12:00:00.000Z"
+    }
+  ],
+  "candidates": [
+    { "id": 1, "name": "Candidate A", "votes": 0 },
+    { "id": 2, "name": "Candidate B", "votes": 0 }
+  ]
+}

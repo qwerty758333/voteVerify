@@ -1,27 +1,8 @@
 import { NextResponse } from 'next/server'
-import fs from 'fs'
-import path from 'path'
-import { getResolvedSobaCredentials, SOBA_ORG_ID } from '@/lib/events'
+import { getResolvedSobaCredentials, getCurrentEventId, SOBA_ORG_ID } from '@/lib/events'
+import { readVoters, writeVoters, findVoterIndex } from '@/lib/voterStore'
 
 const SOBA_VERIFY_FACE = 'https://poc.soba.network/api/verify-face'
-const DB_PATH = path.join(process.cwd(), 'data', 'voters.json')
-
-function readVoters() {
-  try {
-    if (!fs.existsSync(DB_PATH)) return []
-    const content = fs.readFileSync(DB_PATH, 'utf8')
-    if (!content?.trim()) return []
-    return JSON.parse(content)
-  } catch (err) {
-    console.error('[soba-verify-face] read voters failed:', err)
-    return []
-  }
-}
-
-function writeVoters(voters) {
-  fs.mkdirSync(path.dirname(DB_PATH), { recursive: true })
-  fs.writeFileSync(DB_PATH, JSON.stringify(voters, null, 2))
-}
 
 export async function POST(request) {
   try {
@@ -61,13 +42,15 @@ export async function POST(request) {
       json = { _parseError: true, raw: text }
     }
 
-    // Response contains: face_id_registered: true (face exists), verified: true (face matched today)
     const faceRegistered = !!(json && json.face_id_registered === true)
     const faceVerified = !!(json && json.verified === true)
 
     if (faceRegistered && faceVerified) {
       const voters = readVoters()
-      const idx = voters.findIndex(v => v.email === email)
+      const idx = findVoterIndex(voters, {
+        email,
+        eventId: getCurrentEventId()
+      })
       if (idx !== -1) {
         voters[idx].faceVerifiedToday = true
         voters[idx].lastVerifiedAt = new Date().toISOString()
@@ -76,13 +59,13 @@ export async function POST(request) {
       }
     }
 
-    return NextResponse.json({ 
-      success: false, 
-      error: faceRegistered ? 'Face verification failed' : 'Face ID not registered',
-      json 
+    return NextResponse.json({
+      success: false,
+      face_id_registered: faceRegistered,
+      verified: faceVerified
     })
   } catch (err) {
     console.error('[soba-verify-face] failed:', err)
-    return NextResponse.json({ error: 'Verification check failed' }, { status: 500 })
+    return NextResponse.json({ error: 'Verification failed' }, { status: 500 })
   }
 }

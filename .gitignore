@@ -49,5 +49,6 @@ next-env.d.ts
 
 data/voters.json
 data/events.json
+data/votes.json
 
 .vercel

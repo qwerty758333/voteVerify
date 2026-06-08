@@ -19,6 +19,9 @@ export async function POST(request) {
     const eventId = body.eventId
     const apiKey = body.apiKey
     const eventName = body.eventName
+    const verificationUrl = body.verificationUrl
+    const registrationUrl = body.registrationUrl
+    const orgId = body.orgId
 
     const id = String(eventId || '').trim()
     const key = apiKey != null ? String(apiKey).trim() : ''
@@ -37,7 +40,16 @@ export async function POST(request) {
     const result = saveEventSettings({
       eventId: id,
       apiKey: key || undefined,
-      eventName: eventName !== undefined && eventName !== null ? String(eventName) : undefined
+      eventName: eventName !== undefined && eventName !== null ? String(eventName) : undefined,
+      verificationUrl:
+        verificationUrl !== undefined && verificationUrl !== null
+          ? String(verificationUrl)
+          : undefined,
+      registrationUrl:
+        registrationUrl !== undefined && registrationUrl !== null
+          ? String(registrationUrl)
+          : undefined,
+      orgId: orgId !== undefined && orgId !== null ? String(orgId) : undefined
     })
 
     if (!result.ok) {

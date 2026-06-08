@@ -76,6 +76,40 @@ Open `http://localhost:3000`
 - One-person-one-vote enforcement via biometric binding
 - System blocks any attempt to vote twice
 
+## Voting Feature
+
+VoteVerify supports end-to-end digital voting after SOBA identity verification.
+
+### How It Works
+
+1. **Voter login** — Voter signs in with their registered email.
+2. **Verify face** — Voter completes SOBA face verification for the current polling day (`faceVerifiedToday`).
+3. **Cast vote** — From the voter dashboard, eligible voters open the voting page and select a candidate.
+
+### Candidates
+
+Three candidates are configured by default:
+
+- **Candidate A**
+- **Candidate B**
+- **Candidate C**
+
+Vote counts and percentages are calculated from `data/votes.json` and shown on the officer **Results** tab.
+
+### Rules
+
+- **One vote per verified voter** — A voter must be SOBA-verified, face-verified today, and not already voted. The API rejects duplicate ballots.
+- **Officer live results** — Officers view turnout, per-candidate totals, and progress bars on the dashboard **📊 Results** tab (auto-refreshes every 10 seconds).
+- **Votes stored encrypted** — Cast ballots are persisted in `data/votes.json` with an encryption version field; production deployments should use full at-rest encryption for vote records.
+- **No voter tracking (privacy)** — Results show aggregate counts only. Individual ballot choices are not exposed on the officer UI or home page.
+
+### Voter & Officer Paths
+
+| Role | Flow |
+|------|------|
+| **Voter** | Login → Dashboard → Verify face (if needed) → **Cast Your Vote** → Select candidate → Confirm |
+| **Officer** | PIN login → **Results** tab → View live turnout and candidate breakdown |
+
 ## Tech Stack
 
 | Layer | Technology |
@@ -194,6 +228,19 @@ Officer Dashboard (real-time)
 - Privacy-preserving by design (not bolted on)
 
 ## Testing
+
+### Testing Flow
+
+End-to-end voting demo (about 5 minutes):
+
+1. **Register voter** — Home → Register Account → submit name, NIC, and email.
+2. **Officer sends SOBA email** — Officer dashboard → ensure voter appears → use SOBA invite/sync so the voter can complete registration.
+3. **Voter completes face scan** — Voter follows SOBA link and completes biometric verification.
+4. **Voter logs in** — Home → Voter Login → sign in with registered email.
+5. **Voter clicks "Cast Your Vote"** — On the dashboard, after face verification for today, open the voting page.
+6. **Voter selects candidate** — Choose Candidate A, B, or C.
+7. **Voter confirms vote** — Submit and confirm; voter record is marked `hasVoted`.
+8. **Officer sees result in dashboard** — Officer → **📊 Results** tab → verify updated vote counts and turnout.
 
 ### Test Credentials
 ```

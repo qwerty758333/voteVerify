@@ -1,25 +1,6 @@
 import { NextResponse } from 'next/server'
-import fs from 'fs'
-import path from 'path'
-import { getResolvedSobaCredentials } from '@/lib/events'
-
-const DB_PATH = path.join(process.cwd(), 'data', 'voters.json')
-
-function readVoters() {
-  try {
-    if (!fs.existsSync(DB_PATH)) return []
-    const content = fs.readFileSync(DB_PATH, 'utf8')
-    if (!content?.trim()) return []
-    return JSON.parse(content)
-  } catch {
-    return []
-  }
-}
-
-function writeVoters(voters) {
-  fs.mkdirSync(path.dirname(DB_PATH), { recursive: true })
-  fs.writeFileSync(DB_PATH, JSON.stringify(voters, null, 2))
-}
+import { getResolvedSobaCredentials, getCurrentEventId } from '@/lib/events'
+import { readVoters, writeVoters, findVoterIndex } from '@/lib/voterStore'
 
 export async function POST(request) {
   const creds = getResolvedSobaCredentials()
@@ -40,11 +21,12 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Email required' }, { status: 400 })
   }
 
+  const eventId = getCurrentEventId()
   const voters = readVoters()
-  const index = voters.findIndex(v => v.email === em)
+  const index = findVoterIndex(voters, { email: em, eventId })
 
   if (index === -1) {
-    return NextResponse.json({ error: 'Voter not found' }, { status: 404 })
+    return NextResponse.json({ error: 'Voter not found for this event' }, { status: 404 })
   }
 
   voters[index].sobaVerified = true

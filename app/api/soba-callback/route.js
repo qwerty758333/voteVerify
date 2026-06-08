@@ -1,30 +1,12 @@
 import { NextResponse } from 'next/server'
-import fs from 'fs'
-import path from 'path'
-import { getResolvedSobaCredentials } from '@/lib/events'
-
-const DB_PATH = path.join(process.cwd(), 'data', 'voters.json')
-
-function readVoters() {
-  try {
-    if (!fs.existsSync(DB_PATH)) return []
-    const content = fs.readFileSync(DB_PATH, 'utf8')
-    if (!content?.trim()) return []
-    return JSON.parse(content)
-  } catch {
-    return []
-  }
-}
-
-function writeVoters(voters) {
-  fs.mkdirSync(path.dirname(DB_PATH), { recursive: true })
-  fs.writeFileSync(DB_PATH, JSON.stringify(voters, null, 2))
-}
+import { getResolvedSobaCredentials, getCurrentEventId } from '@/lib/events'
+import { readVoters, writeVoters, findVoterIndex } from '@/lib/voterStore'
 
 function markVerifiedByEmail(email) {
   if (!email) return
+  const eventId = getCurrentEventId()
   const voters = readVoters()
-  const index = voters.findIndex(v => v.email === email)
+  const index = findVoterIndex(voters, { email, eventId })
   if (index !== -1) {
     voters[index].sobaVerified = true
     voters[index].verifiedAt = new Date().toISOString()

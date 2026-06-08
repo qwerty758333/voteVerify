@@ -5,56 +5,60 @@ import { useRouter } from 'next/navigation'
 import FullBackground from '@/app/components/FullBackground'
 
 export default function OfficerDashboard() {
+  const router = useRouter()
   const [authenticated, setAuthenticated] = useState(false)
-  const [pin, setPin] = useState('')
-  const [pinError, setPinError] = useState('')
-  
+  const [authLoading, setAuthLoading] = useState(true)
+
   const [voters, setVoters] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [marking, setMarking] = useState(null)
   const [syncing, setSyncing] = useState(false)
   const [syncMessage, setSyncMessage] = useState('')
   const [currentEvent, setCurrentEvent] = useState(null)
+  const [activeTab, setActiveTab] = useState('voters')
+  const [candidates, setCandidates] = useState([])
+  const [resultsLoading, setResultsLoading] = useState(false)
+  const [lastRefreshTime, setLastRefreshTime] = useState(null)
 
-  const router = useRouter()
+  useEffect(() => {
+    const isAuth = localStorage.getItem('officerAuthenticated')
+
+    if (isAuth !== 'true') {
+      router.push('/officer/login')
+      return
+    }
+
+    setAuthenticated(true)
+    setAuthLoading(false)
+  }, [router])
+
+  useEffect(() => {
+    if (!authenticated) return
+    fetchVoters()
+    fetchEventSettings()
+    const interval = setInterval(fetchVoters, 5000)
+    return () => clearInterval(interval)
+  }, [authenticated])
+
+  useEffect(() => {
+    if (!authenticated) return
+    syncAndRefresh(true)
+  }, [authenticated])
+
+  useEffect(() => {
+    if (!authenticated || activeTab !== 'results') return
+    fetchCandidates()
+    const interval = setInterval(() => {
+      fetchCandidates()
+      fetchVoters()
+    }, 10000)
+    return () => clearInterval(interval)
+  }, [authenticated, activeTab])
 
   function handleLogout() {
-    setAuthenticated(false)
-    setPin('')
-    localStorage.removeItem('officerAuth')
+    localStorage.removeItem('officerAuthenticated')
+    router.push('/officer/login')
   }
-
-  function handlePinLogin() {
-    if (pin === '1234') {
-      setAuthenticated(true)
-      localStorage.setItem('officerAuth', 'true')
-      setPinError('')
-    } else {
-      setPinError('Invalid PIN')
-    }
-  }
-
-  useEffect(() => {
-    if (localStorage.getItem('officerAuth') === 'true') {
-      setAuthenticated(true)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (authenticated) {
-      fetchVoters()
-      fetchEventSettings()
-      const interval = setInterval(fetchVoters, 5000)
-      return () => clearInterval(interval)
-    }
-  }, [authenticated])
-
-  useEffect(() => {
-    if (authenticated) {
-      syncAndRefresh(true)
-    }
-  }, [authenticated])
 
   async function fetchEventSettings() {
     try {
@@ -66,11 +70,43 @@ export default function OfficerDashboard() {
     }
   }
 
+  async function fetchCandidates() {
+    setResultsLoading(true)
+    try {
+      const res = await fetch('/api/candidates', {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to load results')
+      setCandidates(Array.isArray(data) ? data : [])
+      setLastRefreshTime(new Date())
+    } catch (err) {
+      console.error('Failed to fetch candidates', err)
+    } finally {
+      setResultsLoading(false)
+    }
+  }
+
+  async function refreshResults() {
+    await Promise.all([fetchVoters(), fetchCandidates()])
+    setLastRefreshTime(new Date())
+  }
+
   async function fetchVoters() {
     try {
-      const res = await fetch('/api/voters')
+      const res = await fetch('/api/voters', {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      })
       const data = await res.json()
-      setVoters(data)
+      setVoters([...data])
     } catch (err) {
       console.error('Failed to fetch voters', err)
     } finally {
@@ -84,319 +120,259 @@ export default function OfficerDashboard() {
     if (!silent) setSyncMessage('Syncing...')
 
     try {
-      // 1. Get credentials from backend
-      const eventsRes = await fetch('/api/events')
-      const events = await eventsRes.json()
-      
-      console.log('Events config:', {
-        eventId: events.eventId,
-        hasApiKey: !!events.apiKey
-      })
+      const res = await fetch('/api/soba-sync', { method: 'POST' })
+      const data = await res.json()
 
-      const apiKey = events.apiKey || ''
-      const eventId = events.eventId || ''
-
-      if (!apiKey || !eventId) {
-        if (!silent) setSyncMessage('Event not configured. Go to Settings first.')
-        setSyncing(false)
-        return
-      }
-
-      // 2. Get all voters
-      const votersRes = await fetch('/api/voters')
-      const voters = await votersRes.json()
-      
-      // 3. Filter unverified
-      const unverified = voters.filter(v => !v.sobaVerified)
-
-      let synced = 0
-
-      // 4. Check each voter from BROWSER (not backend)
-      for (const voter of unverified) {
-        try {
-          console.log('Sending to SOBA:', {
-            org_id: '750006',
-            event_id: String(eventId),
-            email: voter.email,
-            api_key: apiKey?.substring(0, 8) + '...'
-          })
-
-          const response = await fetch(
-            'https://poc.soba.network/api/add-attendee',
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': apiKey
-              },
-              body: JSON.stringify({
-                org_id: '750006',
-                event_id: String(eventId),
-                email: voter.email,
-                api_key: apiKey
-              })
-            }
-          )
-
-          const data = await response.json()
-          console.log('Full SOBA response:', JSON.stringify(data))
-
-          // If verified, tell OUR backend to update
-          if (data?.data?.face_id_registered === true) {
-            await fetch('/api/verify', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ email: voter.email })
-            })
-            synced++
-          }
-
-          // Small delay between requests
-          await new Promise(r => setTimeout(r, 300))
-        } catch (err) {
-          console.error('Error checking voter:', voter.email, err)
-        }
-      }
-
-      // 5. Refresh voter list
       await fetchVoters()
 
       if (!silent) {
-        setSyncMessage(synced > 0 ? `✓ ${synced} voter(s) verified` : '✓ Status up to date')
+        if (res.ok) {
+          setSyncMessage(
+            data.synced > 0
+              ? `${data.synced} voter(s) verified`
+              : 'Status up to date'
+          )
+        } else {
+          setSyncMessage('Sync failed - check settings')
+        }
         setTimeout(() => setSyncMessage(''), 3000)
       }
     } catch (err) {
       console.error('Sync error:', err)
-      if (!silent) setSyncMessage('✗ Sync failed')
+      if (!silent) setSyncMessage('Sync failed - try again')
     } finally {
       setSyncing(false)
     }
   }
 
-  async function markAsVoted(id) {
-    setMarking(id)
-    try {
-      const res = await fetch(`/api/voters/${id}/vote`, { method: 'PATCH' })
-      if (!res.ok) throw new Error('Failed')
-      await fetchVoters()
-    } catch (err) {
-      alert('Something went wrong')
-    } finally {
-      setMarking(null)
-    }
-  }
-
-  function validateNIC(nic) {
-    if (!nic) return false
-    const cleaned = nic.trim().toUpperCase()
-    const oldFormat = /^[0-9]{9}[VX]$/
-    const newFormat = /^[0-9]{12}$/
-    return oldFormat.test(cleaned) || newFormat.test(cleaned)
-  }
-
-  function getNICInfo(nic) {
-    const cleaned = nic.trim().toUpperCase()
-    let birthYear
-    let gender
-    if (cleaned.length === 10) {
-      birthYear = '19' + cleaned.substring(0, 2)
-      const dayValue = parseInt(cleaned.substring(2, 5))
-      gender = dayValue > 500 ? 'Female' : 'Male'
-    } else if (cleaned.length === 12) {
-      birthYear = cleaned.substring(0, 4)
-      const dayValue = parseInt(cleaned.substring(4, 7))
-      gender = dayValue > 500 ? 'Female' : 'Male'
-    }
-    const age = birthYear ? new Date().getFullYear() - parseInt(birthYear) : 0
-    return { birthYear, gender, age }
-  }
-
-  const filtered = voters.filter(v => 
-    v.name.toLowerCase().includes(search.toLowerCase()) ||
-    v.nic.toLowerCase().includes(search.toLowerCase())
+  const filtered = voters.filter(
+    v =>
+      v.name.toLowerCase().includes(search.toLowerCase()) ||
+      v.nic.toLowerCase().includes(search.toLowerCase())
   )
 
-  const verifiedCount = voters.filter(v => v.sobaVerified).length
-  const votedCount = voters.filter(v => v.voted).length
-  const totalVoters = voters.length
-  const activeEventLabel = currentEvent?.eventName || 'General Election 2026'
+  const votedCount = voters.filter(v => v.hasVoted === true).length
+  const turnoutPercent =
+    voters.length > 0 ? Math.round((votedCount / voters.length) * 100) : 0
+  const totalVotes =
+    candidates.reduce((sum, c) => sum + (c.votes || 0), 0) || votedCount
+  const eventId = currentEvent?.eventId || '2790001'
+  const eventName = currentEvent?.eventName || 'voteVerify'
 
-  if (!authenticated) {
+  if (authLoading) {
     return (
-      <main className="min-h-screen w-full flex items-center justify-center p-4 relative">
+      <main className="min-h-screen w-full flex items-center justify-center p-4 sm:p-8 relative">
         <FullBackground />
-        <div className="w-full max-w-md relative z-10">
-          <div className="flex flex-col items-center">
-            <Link href="/" className="btn btn-secondary mb-8 shadow-xl border-2 border-white/20">
-              ← Back to Home
-            </Link>
-            
-            <div className="w-full">
-              <div className="card">
-                <h1 className="text-3xl font-bold mb-2 text-slate-900">Officer Access</h1>
-                <p className="text-slate-600 mb-8">Enter PIN</p>
-
-                <div className="flex flex-col items-center w-full gap-4">
-                  <input
-                    type="password"
-                    placeholder="••••"
-                    value={pin}
-                    onChange={e => setPin(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && handlePinLogin()}
-                    maxLength={4}
-                    className="text-center text-3xl tracking-widest font-bold w-[200px]"
-                  />
-                  {pinError && (
-                    <div className="alert alert-error text-sm py-2 w-[200px] text-center">{pinError}</div>
-                  )}
-                  <button type="button" onClick={handlePinLogin} className="btn btn-primary w-[200px]">
-                    Login
-                  </button>
-                </div>
-
-                <p className="text-xs text-slate-400 text-center">Demo PIN: 1234</p>
-              </div>
-            </div>
-          </div>
+        <div className="card text-center relative z-10">
+          <p className="text-slate-600">Loading dashboard…</p>
         </div>
       </main>
     )
   }
 
+  if (!authenticated) {
+    return null
+  }
+
+  const tabClass = tab =>
+    `px-6 py-3 font-semibold border-b-4 transition ${
+      activeTab === tab
+        ? 'border-[#62609f] text-[#4e4d80]'
+        : 'border-transparent text-slate-500 hover:text-slate-700'
+    }`
+
   return (
-    <main className="flex-1 w-full flex flex-col items-center justify-start py-12 px-6 relative">
+    <main className="min-h-screen w-full relative">
       <FullBackground />
-      <div className="max-w-4xl w-full mx-auto relative z-10">
-        <div className="flex justify-between items-start mb-10 gap-4 flex-wrap">
-          <div>
-            <div className="flex items-center gap-4 mb-5 flex-wrap">
-              <a
-                href="/"
-                className="inline-flex items-center gap-3 text-white bg-[#62609f] hover:bg-[#4e4d80] font-bold px-6 py-2.5 rounded-full transition-all text-sm group shadow-lg border-2 border-white/30 relative z-[50] whitespace-nowrap"
-              >
-                <span className="transition-transform group-hover:-translate-x-1">←</span> Home
-              </a>
-              <Link
-                href="/officer/settings"
-                className="inline-flex items-center gap-2 text-white bg-[#62609f] hover:bg-[#4e4d80] font-bold px-6 py-2.5 rounded-full transition-all text-sm shadow-lg border-2 border-white/30 relative z-[50] whitespace-nowrap"
-              >
-                ⚙️ Settings
-              </Link>
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-8 py-8">
+        <div className="card mb-6 !p-6 sm:!p-8">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-slate-900">
+                Election Dashboard
+              </h1>
+              <p className="text-slate-600 mt-1 text-sm">
+                Event ID: {eventId} • {eventName}
+              </p>
+              {syncMessage && (
+                <p className="text-xs text-[#4e4d80] mt-2 font-medium">{syncMessage}</p>
+              )}
+            </div>
+
+            <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => syncAndRefresh(false)}
                 disabled={syncing}
-                className="inline-flex items-center gap-2 text-white bg-slate-900 hover:bg-slate-800 font-bold px-6 py-2.5 rounded-full transition-all text-sm shadow-lg border-2 border-white/10 relative z-[50] whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed"
+                className="btn btn-secondary !py-2 !px-5 !text-sm"
               >
-                {syncing ? 'Syncing...' : '🔄 Sync SOBA Status'}
+                {syncing ? 'Syncing...' : 'Sync SOBA'}
+              </button>
+              <Link
+                href="/officer/settings"
+                className="btn btn-secondary !py-2 !px-5 !text-sm"
+              >
+                Settings
+              </Link>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="btn btn-danger !py-2 !px-5 !text-sm"
+              >
+                Logout
               </button>
             </div>
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-3 flex-wrap">
-                <h1 className="text-4xl font-black text-slate-900 tracking-tight">Officer Dashboard</h1>
-                <span className="badge badge-neutral text-[11px] font-semibold bg-slate-200 text-slate-800">
-                  Active Event: {activeEventLabel}
-                </span>
-              </div>
-              <p className="text-slate-600 font-medium">Real-time voter management</p>
-              {syncMessage && <p className="text-xs text-slate-500 mt-1">{syncMessage}</p>}
-            </div>
-          </div>
-          <button type="button" onClick={handleLogout} className="btn btn-danger shadow-md shrink-0">
-            Logout
-          </button>
-        </div>
-
-        <div className="card mb-10 border-b-4 border-[#62609f]/20">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:divide-x divide-slate-100">
-            {[
-              { label: 'Total Registered', value: totalVoters },
-              { label: 'SOBA Verified', value: verifiedCount },
-              { label: 'Voted', value: votedCount }
-            ].map(({ label, value }) => (
-              <div key={label} className="flex flex-col items-center md:items-start md:px-8 first:pl-0 last:pr-0">
-                <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-2">{label}</p>
-                <p className="text-5xl font-black text-[#62609f]">{value}</p>
-              </div>
-            ))}
           </div>
         </div>
 
-        <div className="mb-12 flex justify-center w-full px-4">
-          <div className="relative w-full max-w-[480px] group">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg group-focus-within:text-white transition-colors z-20">
-              🔍
-            </span>
-            <input
-              placeholder="Search voters by name or NIC..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="pl-12 pr-6 py-4 w-full bg-slate-950 border-2 border-slate-800 text-white placeholder-slate-500 rounded-2xl shadow-2xl focus:border-[#62609f] focus:ring-4 focus:ring-[#62609f]/10 transition-all font-medium text-base"
-            />
+        <div className="card !p-6 sm:!p-8">
+          <div className="flex gap-2 border-b border-slate-200 mb-6">
+            <button type="button" onClick={() => setActiveTab('voters')} className={tabClass('voters')}>
+              Voter List
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('results')
+                refreshResults()
+              }}
+              className={tabClass('results')}
+            >
+              Results
+            </button>
           </div>
-        </div>
 
-        {loading ? (
-          <div className="card text-center text-slate-600">Loading...</div>
-        ) : filtered.length === 0 ? (
-          <div className="card text-center text-slate-600">No voters found</div>
-        ) : (
-          <div className="space-y-3">
-            {filtered.map(voter => {
-              const nicInfo = getNICInfo(voter.nic)
-              return (
-                <div key={voter.id} className="card flex justify-between items-center hover:shadow-lg flex-wrap gap-4">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="font-semibold text-slate-900">{voter.name}</p>
-                      {nicInfo && (
-                        <span title={nicInfo.gender}>
-                          {nicInfo.gender === 'Male' ? '👨' : '👩'}
+          {activeTab === 'voters' && (
+            <div>
+              <input
+                placeholder="Search by name or NIC..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="w-full mb-6"
+              />
+
+              {loading ? (
+                <p className="text-center py-10 text-slate-500">Loading voters…</p>
+              ) : filtered.length === 0 ? (
+                <p className="text-center py-10 text-slate-500">No voters found</p>
+              ) : (
+                <div className="space-y-3">
+                  {filtered.map(voter => (
+                    <div
+                      key={voter.id}
+                      className="rounded-xl border border-slate-200 bg-slate-50 p-5 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-slate-900">{voter.name}</div>
+                        <div className="text-sm text-slate-600 mt-1 truncate">
+                          NIC: {voter.nic} • {voter.email}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span
+                          className={
+                            voter.sobaVerified ? 'badge badge-success' : 'badge badge-warning'
+                          }
+                        >
+                          {voter.sobaVerified ? 'Verified' : 'Pending'}
                         </span>
-                      )}
+                        <span
+                          className={
+                            voter.hasVoted ? 'badge badge-primary' : 'badge badge-neutral'
+                          }
+                        >
+                          {voter.hasVoted ? 'Voted' : 'Not Voted'}
+                        </span>
+                      </div>
                     </div>
-                    <p className="text-sm text-slate-600">
-                      NIC: {voter.nic} • {voter.email}
+                  ))}
+                </div>
+              )}
+
+              <p className="text-center text-slate-400 text-xs mt-6">
+                Auto-refreshing every 5s
+              </p>
+            </div>
+          )}
+
+          {activeTab === 'results' && (
+            <div>
+              <div className="mb-6 flex justify-between items-center flex-wrap gap-3">
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-900">Live Results</h2>
+                  {lastRefreshTime && (
+                    <p className="text-xs text-slate-500 mt-1">
+                      Last refreshed: {lastRefreshTime.toLocaleTimeString()}
                     </p>
-                    {nicInfo && (
-                      <p className="text-[10px] text-slate-400 font-bold">
-                        DOB: {nicInfo.birthYear} • {nicInfo.gender} • {nicInfo.age}Y
-                      </p>
-                    )}
-                  </div>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={refreshResults}
+                  disabled={resultsLoading}
+                  className="btn btn-primary !py-2 !px-5 !text-sm"
+                >
+                  {resultsLoading ? 'Refreshing...' : 'Refresh'}
+                </button>
+              </div>
 
-                  <div className="flex items-center gap-4">
-                    <div className="text-right flex flex-col items-end">
-                      <span className={`badge ${voter.sobaVerified ? 'badge-success' : 'badge-warning'} mb-1`}>
-                        {voter.sobaVerified ? '✓ SOBA Verified' : '✕ Not Verified'}
-                      </span>
-                      {voter.voted ? (
-                        <span className="badge badge-success">✓ Voted</span>
-                      ) : (
-                        <span className="badge badge-neutral">Pending</span>
-                      )}
-                    </div>
-
-                    {voter.sobaVerified && !voter.voted ? (
-                      <button
-                        type="button"
-                        onClick={() => markAsVoted(voter.id)}
-                        disabled={marking === voter.id}
-                        className="btn btn-primary text-sm py-2 px-4"
+              {resultsLoading && candidates.length === 0 ? (
+                <p className="text-center py-10 text-slate-500">Loading results…</p>
+              ) : candidates.length === 0 ? (
+                <p className="text-center py-10 text-slate-500">
+                  No candidates found. Ensure data/votes.json is configured.
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {candidates.map(c => {
+                    const percentage =
+                      totalVotes > 0 ? (c.votes / totalVotes) * 100 : 0
+                    return (
+                      <div
+                        key={c.id ?? c.name}
+                        className="rounded-xl border border-slate-200 bg-slate-50 p-5"
                       >
-                        {marking === voter.id ? 'Marking...' : 'Mark Voted'}
-                      </button>
-                    ) : (
-                      <span className="badge badge-neutral">Ineligible</span>
-                    )}
+                        <div className="flex justify-between mb-3 items-center flex-wrap gap-2">
+                          <span className="font-semibold text-slate-900">{c.name}</span>
+                          <span className="text-[#62609f] font-bold">
+                            {c.votes || 0} votes ({percentage.toFixed(1)}%)
+                          </span>
+                        </div>
+                        <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
+                          <div
+                            className="h-full transition-all rounded-full"
+                            style={{
+                              width: `${percentage}%`,
+                              background:
+                                'linear-gradient(135deg, #62609f 0%, #4e4d80 100%)'
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              <div className="mt-8 pt-6 border-t border-slate-200">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <p className="text-slate-600 text-sm">Total Votes</p>
+                    <p className="text-3xl font-bold text-[#62609f] mt-2">{totalVotes}</p>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <p className="text-slate-600 text-sm">Turnout</p>
+                    <p className="text-3xl font-bold text-green-700 mt-2">{turnoutPercent}%</p>
                   </div>
                 </div>
-              )
-            })}
-          </div>
-        )}
+              </div>
 
-        <p className="text-center text-slate-500 text-xs mt-8">Auto-refreshing every 5s</p>
+              <p className="text-center text-slate-400 text-xs mt-6">
+                Auto-refreshing results every 10s
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </main>
   )
