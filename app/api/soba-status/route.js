@@ -1,27 +1,8 @@
 import { NextResponse } from 'next/server'
-import fs from 'fs'
-import path from 'path'
-import { getResolvedSobaCredentials, SOBA_ORG_ID } from '@/lib/events'
+import { getResolvedSobaCredentials, getCurrentEventId, SOBA_ORG_ID } from '@/lib/events'
+import { readVoters, writeVoters, findVoterIndex } from '@/lib/voterStore'
 
 const SOBA_ADD_ATTENDEE = 'https://poc.soba.network/api/add-attendee'
-const DB_PATH = path.join(process.cwd(), 'data', 'voters.json')
-
-function readVoters() {
-  try {
-    if (!fs.existsSync(DB_PATH)) return []
-    const content = fs.readFileSync(DB_PATH, 'utf8')
-    if (!content?.trim()) return []
-    return JSON.parse(content)
-  } catch (err) {
-    console.error('[soba-status] read voters failed:', err)
-    return []
-  }
-}
-
-function writeVoters(voters) {
-  fs.mkdirSync(path.dirname(DB_PATH), { recursive: true })
-  fs.writeFileSync(DB_PATH, JSON.stringify(voters, null, 2))
-}
 
 export async function GET(request) {
   try {
@@ -68,7 +49,7 @@ export async function GET(request) {
 
     if (faceRegistered) {
       const voters = readVoters()
-      const idx = voters.findIndex(v => v.email === email)
+      const idx = findVoterIndex(voters, { email, eventId: getCurrentEventId() })
       if (idx !== -1 && !voters[idx].sobaVerified) {
         voters[idx].sobaVerified = true
         updatedAt = new Date().toISOString()
@@ -90,4 +71,3 @@ export async function GET(request) {
     return NextResponse.json({ error: 'Status check failed' }, { status: 500 })
   }
 }
-

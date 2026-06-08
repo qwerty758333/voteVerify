@@ -9,51 +9,166 @@ export default function Home() {
   }, [])
 
   return (
-    <main className="flex-1 w-full bg-[var(--background)] flex flex-col items-center">
-      
-      {/* Hero Header with Voting Station Image */}
-      <div 
-        className="w-full h-[45vh] bg-cover bg-center relative"
-        style={{ backgroundImage: "url('/voting.png')" }}
+    <>
+      <main
+        className="min-h-screen flex items-center justify-center p-6 relative"
+        style={{
+          backgroundImage: 'url(/voting.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: 'fixed'
+        }}
       >
-        {/* Soft overlay gradient to beautifully blend the header into the themed page below */}
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-900/30 via-transparent to-[var(--background)]"></div>
-      </div>
+        <div className="absolute inset-0 bg-black/30" />
 
-      {/* Main Content Card - Cleanly overlaps the header for a premium SaaS look */}
-      <div className="w-full max-w-4xl px-4 sm:px-6 relative z-10 -mt-24 pb-16">
-        {/* Removed borders to let it seamlessly float */}
-        <div className="bg-white p-8 sm:p-14 rounded-[2rem] shadow-2xl">
-          
-          <div className={`text-center mb-16 ${mounted ? 'animate-slide-up' : 'opacity-0'}`}>
-            <div className="inline-block px-4 py-1.5 mb-8 rounded-full bg-slate-50 border border-slate-200 text-slate-600 font-bold text-sm tracking-wide shadow-sm uppercase">
-              The New Standard of Trust
+        <div
+          className="relative z-10 w-full flex items-center justify-center"
+          style={{
+            opacity: mounted ? 1 : 0,
+            transform: mounted ? 'translateY(0)' : 'translateY(16px)',
+            transition: 'opacity 0.7s ease, transform 0.7s ease'
+          }}
+        >
+          <div
+            style={{
+              width: '90%',
+              maxWidth: '500px',
+              margin: '0 auto'
+            }}
+          >
+            <div
+              style={{
+                backgroundColor: 'white',
+                borderRadius: '24px',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+                padding: '40px',
+                textAlign: 'center',
+                width: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                boxSizing: 'border-box'
+              }}
+            >
+              <h1
+                style={{
+                  fontSize: '56px',
+                  fontWeight: 'bold',
+                  color: '#000',
+                  margin: '0 0 24px 0',
+                  letterSpacing: '2px',
+                  width: '100%',
+                  textAlign: 'center'
+                }}
+              >
+                VOTEVERIFY
+              </h1>
+
+              <p
+                style={{
+                  fontSize: '18px',
+                  color: '#333',
+                  margin: '0 auto 48px',
+                  lineHeight: '1.6',
+                  width: '100%',
+                  maxWidth: '360px',
+                  textAlign: 'center'
+                }}
+              >
+                Secure voter authentication using advanced biometric technology.
+                Privacy-preserving voting powered by SOBA Network.
+              </p>
+
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '16px',
+                  marginTop: '8px',
+                  width: '100%'
+                }}
+              >
+                <a
+                  href="/voter/login"
+                  className="btn btn-primary"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '168px',
+                    minWidth: '168px',
+                    maxWidth: '168px',
+                    height: '44px',
+                    padding: '0 12px',
+                    boxSizing: 'border-box',
+                    fontSize: '14px',
+                    margin: 0
+                  }}
+                >
+                  Voter Login
+                </a>
+                <a
+                  href="/voter"
+                  className="btn btn-primary"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '168px',
+                    minWidth: '168px',
+                    maxWidth: '168px',
+                    height: '44px',
+                    padding: '0 12px',
+                    boxSizing: 'border-box',
+                    fontSize: '14px',
+                    margin: 0
+                  }}
+                >
+                  Register
+                </a>
+                <a
+                  href="/officer/login"
+                  className="btn btn-primary"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '168px',
+                    minWidth: '168px',
+                    maxWidth: '168px',
+                    height: '44px',
+                    padding: '0 12px',
+                    boxSizing: 'border-box',
+                    fontSize: '14px',
+                    margin: 0
+                  }}
+                >
+                  Officer
+                </a>
+              </div>
             </div>
-            
-            {/* Extremely dark solid text to guarantee it shows up precisely on every browser */}
-            <h1 className="text-6xl md:text-8xl font-black mb-8 text-[#141320]" style={{ letterSpacing: '-0.04em' }}>
-              Welcome to <span className="text-[#62609f]">VoteVerify</span>
-            </h1>
-            
-            <p className="text-lg md:text-xl text-slate-500 font-medium tracking-tight px-4 leading-loose max-w-2xl mx-auto">
-              Experience the next-generation of <strong className="text-slate-800 font-bold">secure voter authentication</strong>. Built for transparency, absolute security, and a seamless polling day.
-            </p>
           </div>
-
-          <div className={`flex flex-col sm:flex-row justify-center items-center gap-6 sm:gap-8 ${mounted ? 'animate-slide-up' : 'opacity-0'}`} style={{ animationDelay: '0.1s' }}>
-            <a href="/voter/login" className="btn btn-primary min-w-[200px] shadow-[#62609f]/20 hover:shadow-[#62609f]/30">
-              Voter Login
-            </a>
-            <a href="/voter" className="btn btn-secondary min-w-[200px]">
-              Register Account
-            </a>
-            <a href="/officer" className="btn btn-secondary min-w-[200px]">
-              Officer Access
-            </a>
-          </div>
-          
         </div>
-      </div>
-    </main>
+      </main>
+
+      <footer
+        style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          backgroundColor: '#111827',
+          color: 'white',
+          padding: '32px',
+          textAlign: 'center',
+          zIndex: 50
+        }}
+      >
+        <p style={{ color: '#9CA3AF' }}>
+          VoteVerify © 2025 • Secure Voter Authentication Powered by SOBA Network
+        </p>
+      </footer>
+    </>
   )
 }

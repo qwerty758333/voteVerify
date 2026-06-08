@@ -29,6 +29,11 @@ export default function VoterPage() {
       const data = await res.json().catch(() => ({ success: false, error: 'Invalid response from server' }))
 
       if (data.success === true) {
+        await fetch('/api/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: em })
+        }).catch(() => {})
         setFlow('soba_ok')
         setVerificationOpened(false)
         return
@@ -227,31 +232,19 @@ export default function VoterPage() {
 
                 {flow === 'soba_ok' && (
                   <>
-                    <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6 border border-emerald-200">
-                      <span className="text-4xl text-emerald-600">✓</span>
+                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 border border-green-200">
+                      <span className="text-3xl text-green-600">✓</span>
                     </div>
-                    <h2 className="text-3xl font-bold mb-4 text-slate-900">You&apos;re Registered!</h2>
-                    
-                    <p className="text-slate-600 text-lg leading-relaxed mb-6">
-                      You&apos;ll receive a verification email shortly. Please complete the face verification before polling day to be eligible to vote.
+                    <h2 className="text-2xl font-bold mb-2 text-slate-900">
+                      Registration Complete
+                    </h2>
+                    <p className="text-slate-600 mb-6">
+                      You&apos;re registered and ready to vote. Log in to verify
+                      your identity and cast your ballot.
                     </p>
-
-                    <div className="bg-slate-50 rounded-2xl border border-slate-200 p-6 mb-8 text-center">
-                      <p className="text-sm text-slate-500 uppercase font-bold tracking-wider mb-1">We&apos;ll send it to</p>
-                      <p className="text-xl font-semibold text-slate-900 break-all">{email.trim()}</p>
-                    </div>
-
-                    <div className="voter-form-controls mt-8">
-                      <div className="voter-form-actions">
-                        <a href="/voter/login" className="btn btn-primary w-full shadow-xl">
-                          Go to Dashboard →
-                        </a>
-                      </div>
-                    </div>
-
-                    <p className="text-xs text-slate-400 mt-8">
-                      Identity verified and secured by SOBA Network.
-                    </p>
+                    <a href="/voter/login" className="btn btn-primary w-full">
+                      Go to Login
+                    </a>
                   </>
                 )}
               </div>

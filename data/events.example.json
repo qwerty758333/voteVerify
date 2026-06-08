@@ -1,7 +1,10 @@
 {
   "org_id": "750006",
+  "orgId": "750006",
   "eventId": "2790001",
   "apiKey": "your-api-key-here",
-  "eventName": "Example election",
+  "eventName": "voteVerify",
+  "verificationUrl": "https://poh.soba.network/verify?sid=NzUwMDA2fDI3OTAwMDE%3D",
+  "registrationUrl": "https://poh.soba.network/verifyHuman?sid=NzUwMDA2fDI3OTAwMDF8PHVzZXJfZW1haWw%2B",
   "updatedAt": ""
 }

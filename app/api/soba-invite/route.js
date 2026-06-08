@@ -1,113 +1,101 @@
 import { NextResponse } from 'next/server'
-import { getResolvedSobaCredentials, SOBA_ORG_ID } from '@/lib/events'
+import fs from 'fs'
+import path from 'path'
 
-const SOBA_ADD_ATTENDEE = 'https://poc.soba.network/api/add-attendee'
+const EVENTS_PATH = path.join(
+  process.cwd(), 'data', 'events.json'
+)
 
 export async function POST(request) {
   try {
-    const body = await request.json()
-    const email = String(body.email || '').trim()
-    const name = body.name != null ? String(body.name).trim() : ''
+    const { email, name } = await request.json()
 
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return NextResponse.json(
-        { success: false, error: 'A valid email address is required' },
-        { status: 400 }
-      )
-    }
+    // Read credentials
+    let apiKey = process.env.SOBA_API_KEY || ''
+    let eventId = process.env.SOBA_EVENT_ID || ''
 
-    if (!name) {
-      return NextResponse.json(
-        { success: false, error: 'Name is required to register with SOBA' },
-        { status: 400 }
-      )
-    }
-
-    const creds = getResolvedSobaCredentials()
-    if (!creds) {
-      return NextResponse.json(
-        {
-          success: false,
-          error:
-            'SOBA is not configured. Add Event ID and API Key under Officer Settings, or set SOBA_EVENT_ID and SOBA_API_KEY in .env.local.'
-        },
-        { status: 503 }
-      )
-    }
-
-    const eventIdStr = String(creds.eventId).trim()
-    if (!eventIdStr) {
-      return NextResponse.json(
-        { success: false, error: 'Event ID is missing. Configure it in Officer Settings or .env.local.' },
-        { status: 503 }
-      )
-    }
-
-    const payload = {
-      org_id: SOBA_ORG_ID,
-      event_id: eventIdStr,
-      email
-    }
-
-    console.log('Calling SOBA add-attendee...')
-    console.log('Event ID:', eventIdStr)
-    console.log('API Key prefix:', creds.apiKey?.substring(0, 8))
-    console.log('Email:', email)
-    console.log('Request body:', JSON.stringify(payload))
-
-    let sobaRes
     try {
-      // FORMAT A (requested): x-api-key header
-      sobaRes = await fetch(SOBA_ADD_ATTENDEE, {
+      if (fs.existsSync(EVENTS_PATH)) {
+        const raw = fs.readFileSync(EVENTS_PATH, 'utf8')
+        const events = JSON.parse(raw)
+        if (events.apiKey) apiKey = events.apiKey
+        if (events.eventId) eventId = String(events.eventId)
+      }
+    } catch (e) {
+      console.error('Error reading events.json:', e)
+    }
+
+    // Convert to strings explicitly
+    const orgId = '750006'
+    eventId = String(eventId).trim()
+    apiKey = String(apiKey).trim()
+
+    // Log everything for debugging
+    console.log('=== SOBA Invite ===')
+    console.log('org_id:', orgId)
+    console.log('event_id:', eventId)
+    console.log('email:', email)
+    console.log('api_key prefix:', apiKey.substring(0, 8))
+    console.log('Body being sent:', JSON.stringify({
+      org_id: orgId,
+      event_id: eventId,
+      email: email,
+      api_key: apiKey
+    }))
+
+    // Validate before calling
+    if (!apiKey || !eventId || !email) {
+      return NextResponse.json({
+        success: false,
+        error: 'Missing credentials. Configure event in officer settings.'
+      }, { status: 400 })
+    }
+
+    const response = await fetch(
+      'https://poc.soba.network/api/add-attendee',
+      {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': creds.apiKey
+          'x-api-key': apiKey
         },
-        body: JSON.stringify(payload)
-      })
-    } catch (networkErr) {
-      console.error('[SOBA add-attendee] network error (full):', networkErr)
-      return NextResponse.json(
-        { success: false, error: 'Could not reach SOBA. Check your connection and try again.' },
-        { status: 502 }
-      )
-    }
-
-    const rawText = await sobaRes.text()
-
-    let sobaJson = null
-    try {
-      sobaJson = rawText ? JSON.parse(rawText) : null
-    } catch {
-      sobaJson = { _parseError: true, raw: rawText }
-    }
-
-    console.log('SOBA status:', sobaRes.status)
-    console.log('SOBA response:', rawText)
-    if (sobaJson && typeof sobaJson === 'object') {
-      console.log('[SOBA add-attendee] FULL response JSON:', JSON.stringify(sobaJson))
-    }
-
-    if (!sobaRes.ok) {
-      const msg =
-        (sobaJson && !sobaJson._parseError && (sobaJson.message || sobaJson.error || sobaJson.detail)) ||
-        (typeof rawText === 'string' && rawText.trim() ? rawText.trim() : null) ||
-        `SOBA returned ${sobaRes.status}. Please check Event ID and API Key.`
-      console.error('[SOBA add-attendee] FAILED:', sobaRes.status, msg)
-      return NextResponse.json({ success: false, error: String(msg) }, { status: 502 })
-    }
-
-    return NextResponse.json({
-      success: true,
-      message: 'Registered with SOBA',
-      soba: sobaJson
-    })
-  } catch (error) {
-    console.error('[SOBA add-attendee] route error (full):', error)
-    return NextResponse.json(
-      { success: false, error: 'Something went wrong. Please try again.' },
-      { status: 500 }
+        body: JSON.stringify({
+          org_id: orgId,
+          event_id: eventId,
+          email: email,
+          api_key: apiKey
+        })
+      }
     )
+
+    const responseText = await response.text()
+    console.log('SOBA status:', response.status)
+    console.log('SOBA response:', responseText)
+
+    let data
+    try {
+      data = JSON.parse(responseText)
+    } catch (e) {
+      data = { raw: responseText }
+    }
+
+    if (response.ok && data.success) {
+      return NextResponse.json({ 
+        success: true,
+        message: 'Registered with SOBA'
+      })
+    } else {
+      return NextResponse.json({
+        success: false,
+        error: data.message || responseText
+      }, { status: 400 })
+    }
+
+  } catch (err) {
+    console.error('SOBA invite error:', err)
+    return NextResponse.json({
+      success: false,
+      error: err.message
+    }, { status: 500 })
   }
 }

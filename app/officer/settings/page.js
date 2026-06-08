@@ -10,6 +10,8 @@ export default function SettingsPage() {
   const [eventId, setEventId] = useState('')
   const [apiKey, setApiKey] = useState('')
   const [eventName, setEventName] = useState('')
+  const [verificationUrl, setVerificationUrl] = useState('')
+  const [registrationUrl, setRegistrationUrl] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
@@ -20,7 +22,7 @@ export default function SettingsPage() {
   useEffect(() => {
     if (typeof window === 'undefined') return
     if (localStorage.getItem(OFFICER_SESSION_KEY) !== 'true') {
-      router.replace('/officer')
+      router.replace('/officer/login')
     }
   }, [router])
 
@@ -35,6 +37,8 @@ export default function SettingsPage() {
       setPublicConfig(data)
       if (data.eventId) setEventId(data.eventId)
       if (data.eventName) setEventName(data.eventName)
+      setVerificationUrl(data.verificationUrl || '')
+      setRegistrationUrl(data.registrationUrl || '')
     } catch (err) {
       console.error('Failed to fetch settings', err)
     } finally {
@@ -71,7 +75,9 @@ export default function SettingsPage() {
         body: JSON.stringify({
           eventId: id,
           apiKey: key || undefined,
-          eventName: name
+          eventName: name,
+          verificationUrl: verificationUrl.trim(),
+          registrationUrl: registrationUrl.trim()
         })
       })
       const data = await res.json().catch(() => ({}))
@@ -103,7 +109,9 @@ export default function SettingsPage() {
 
           <div className="card w-full">
             <h1 className="text-3xl font-bold mb-2 text-slate-900">SOBA event settings</h1>
-            <p className="text-slate-600 mb-8">Configure credentials used for voter verification emails. Keys stay on the server.</p>
+            <p className="text-slate-600 mb-8">
+              Configure SOBA credentials and portal URLs for this event. API keys are stored on the server only.
+            </p>
 
             {loading ? (
               <p className="text-center py-10 text-slate-500">Loading current settings…</p>
@@ -127,6 +135,14 @@ export default function SettingsPage() {
                     <p className="text-slate-600">
                       <span className="text-slate-500">API key:</span>{' '}
                       {publicConfig.apiKeyMasked || (publicConfig.configured ? '••••' : 'Not set')}
+                    </p>
+                    <p className="text-slate-600 break-all">
+                      <span className="text-slate-500">Verification URL:</span>{' '}
+                      {publicConfig.verificationUrl ? 'Set' : '—'}
+                    </p>
+                    <p className="text-slate-600 break-all">
+                      <span className="text-slate-500">Registration URL:</span>{' '}
+                      {publicConfig.registrationUrl ? 'Set' : '—'}
                     </p>
                     {publicConfig.updatedAt && (
                       <p className="text-xs text-slate-400">Last updated: {new Date(publicConfig.updatedAt).toLocaleString()}</p>
@@ -178,7 +194,43 @@ export default function SettingsPage() {
                     className="w-full"
                     autoComplete="off"
                   />
-                  <p className="text-[11px] text-slate-400 mt-1">Never shared with the browser after save; only used in API routes.</p>
+                  <p className="text-[11px] text-slate-400 mt-1">Leave blank to keep the current key. Used only in server API routes.</p>
+                </div>
+
+                <div>
+                  <label htmlFor="registrationUrl" className="block text-sm font-medium text-slate-700 mb-1">
+                    SOBA registration URL
+                  </label>
+                  <textarea
+                    id="registrationUrl"
+                    placeholder="https://poh.soba.network/verifyHuman?sid=..."
+                    value={registrationUrl}
+                    onChange={e => setRegistrationUrl(e.target.value)}
+                    className="w-full font-mono text-sm"
+                    rows={2}
+                    autoComplete="off"
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    From the SOBA portal — used when sending voters to register their face.
+                  </p>
+                </div>
+
+                <div>
+                  <label htmlFor="verificationUrl" className="block text-sm font-medium text-slate-700 mb-1">
+                    SOBA verification URL
+                  </label>
+                  <textarea
+                    id="verificationUrl"
+                    placeholder="https://poh.soba.network/verify?sid=..."
+                    value={verificationUrl}
+                    onChange={e => setVerificationUrl(e.target.value)}
+                    className="w-full font-mono text-sm"
+                    rows={2}
+                    autoComplete="off"
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Polling-day face verification link — voters are sent here at login.
+                  </p>
                 </div>
 
                 {message && <div className="alert alert-success text-sm py-3">{message}</div>}
