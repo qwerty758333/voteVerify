@@ -1,6 +1,5 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Footer from "./components/Footer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,7 +24,6 @@ export default function RootLayout({ children }) {
     >
       <body className="relative bg-[#0e0d16] overflow-x-hidden min-h-screen">
         {children}
-        <Footer />
       </body>
     </html>
   );

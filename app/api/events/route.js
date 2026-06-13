@@ -1,16 +1,29 @@
 import { NextResponse } from 'next/server'
-import { getPublicEventSettings, saveEventSettings, getResolvedSobaCredentials } from '@/lib/events'
+import prisma from '@/lib/prisma'
+import {
+  SOBA_ORG_ID,
+  getPublicEventSettings,
+  getResolvedSobaCredentials,
+  getVerificationUrl,
+  getRegistrationUrl,
+  fetchLatestEvent
+} from '@/lib/events'
 
 export async function GET() {
-  const events = getPublicEventSettings()
-  // We need to expose credentials for frontend-side sync
-  const creds = getResolvedSobaCredentials()
-  return NextResponse.json({
-    ...events,
-    eventId: creds?.eventId || '',
-    apiKey: creds?.apiKey || '',
-    org_id: '750006'
-  })
+  try {
+    const events = await getPublicEventSettings()
+    const creds = await getResolvedSobaCredentials()
+
+    return NextResponse.json({
+      ...events,
+      eventId: creds?.eventId || '',
+      apiKey: creds?.apiKey || '',
+      org_id: events.org_id || SOBA_ORG_ID
+    })
+  } catch (err) {
+    console.error('GET events error:', err)
+    return NextResponse.json({})
+  }
 }
 
 export async function POST(request) {
@@ -30,35 +43,74 @@ export async function POST(request) {
       return NextResponse.json({ error: 'SOBA Event ID is required' }, { status: 400 })
     }
 
+    const existing = await fetchLatestEvent()
+    const current = await getPublicEventSettings()
+
     if (!key) {
-      const current = getPublicEventSettings()
-      if (!current.configured) {
+      if (!current.configured && !existing?.apiKey) {
         return NextResponse.json({ error: 'SOBA API Key is required' }, { status: 400 })
       }
     }
 
-    const result = saveEventSettings({
-      eventId: id,
-      apiKey: key || undefined,
-      eventName: eventName !== undefined && eventName !== null ? String(eventName) : undefined,
-      verificationUrl:
-        verificationUrl !== undefined && verificationUrl !== null
-          ? String(verificationUrl)
-          : undefined,
-      registrationUrl:
-        registrationUrl !== undefined && registrationUrl !== null
-          ? String(registrationUrl)
-          : undefined,
-      orgId: orgId !== undefined && orgId !== null ? String(orgId) : undefined
-    })
+    const resolvedKey =
+      key || existing?.apiKey?.trim() || (await getResolvedSobaCredentials())?.apiKey || ''
 
-    if (!result.ok) {
-      return NextResponse.json({ error: result.error || 'Validation failed' }, { status: 400 })
+    if (!resolvedKey) {
+      return NextResponse.json({ error: 'API Key is required' }, { status: 400 })
     }
 
-    return NextResponse.json({ success: true, message: 'Settings saved successfully' })
+    const resolvedName =
+      eventName !== undefined && eventName !== null
+        ? String(eventName).trim()
+        : existing?.eventName || ''
+
+    const resolvedOrg =
+      orgId != null && String(orgId).trim() !== ''
+        ? String(orgId).trim()
+        : existing?.orgId || SOBA_ORG_ID
+
+    const resolvedVerification =
+      verificationUrl !== undefined && verificationUrl !== null
+        ? String(verificationUrl).trim()
+        : getVerificationUrl(existing)
+
+    const resolvedRegistration =
+      registrationUrl !== undefined && registrationUrl !== null
+        ? String(registrationUrl).trim()
+        : getRegistrationUrl(existing)
+
+    console.log('Updating event:', id)
+
+    await prisma.event.upsert({
+      where: { eventId: id },
+      update: {
+        apiKey: resolvedKey,
+        orgId: resolvedOrg,
+        eventName: resolvedName,
+        verificationUrl: resolvedVerification,
+        registrationUrl: resolvedRegistration
+      },
+      create: {
+        eventId: id,
+        apiKey: resolvedKey,
+        orgId: resolvedOrg,
+        eventName: resolvedName,
+        verificationUrl: resolvedVerification,
+        registrationUrl: resolvedRegistration
+      }
+    })
+
+    console.log('Event updated:', resolvedName)
+
+    return NextResponse.json({
+      success: true,
+      message: 'Settings saved successfully'
+    })
   } catch (err) {
-    console.error('events POST:', err)
-    return NextResponse.json({ error: 'Failed to save settings' }, { status: 500 })
+    console.error('POST events error:', err)
+    return NextResponse.json(
+      { error: err.message || 'Failed to save settings' },
+      { status: 500 }
+    )
   }
 }

@@ -4,6 +4,36 @@
 @tailwind components;
 @tailwind utilities;
 
+/* PREVENT HORIZONTAL SCROLL */
+html, body {
+  width: 100% !important;
+  max-width: 100vw !important;
+  overflow-x: hidden !important;
+  box-sizing: border-box !important;
+}
+
+* {
+  box-sizing: border-box !important;
+  max-width: 100% !important;
+}
+
+main {
+  width: 100% !important;
+  max-width: 100vw !important;
+  overflow-x: hidden !important;
+}
+
+.card {
+  width: 100% !important;
+  max-width: calc(100vw - 32px) !important;
+  overflow-x: hidden !important;
+}
+
+input, textarea, select, button, .btn {
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+}
+
 :root {
   --glaucous-50: #efeff5;
   --glaucous-100: #e0dfec;
@@ -72,12 +102,140 @@ h6 {
   animation: floatUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* Shared background image */
+.bg-voting-image {
+  background-image: url('/voting.png') !important;
+}
+
+/* Landing page */
+.landing-main {
+  background-image: url('/voting.png') !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-attachment: fixed !important;
+}
+
+.landing-fade-in {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+
+.landing-fade-in--visible {
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+}
+
+.landing-container {
+  width: 90% !important;
+  max-width: 500px !important;
+  margin: 0 auto !important;
+}
+
+.landing-card {
+  background-color: white !important;
+  border-radius: 24px !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3) !important;
+  padding: 40px !important;
+  text-align: center !important;
+  width: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  box-sizing: border-box !important;
+}
+
+.landing-title {
+  font-size: 56px !important;
+  font-weight: bold !important;
+  color: #000 !important;
+  margin: 0 0 24px 0 !important;
+  letter-spacing: 2px !important;
+  width: 100% !important;
+  text-align: center !important;
+}
+
+.landing-subtitle {
+  font-size: 18px !important;
+  color: #333 !important;
+  margin: 0 auto 48px !important;
+  line-height: 1.6 !important;
+  width: 100% !important;
+  max-width: 360px !important;
+  text-align: center !important;
+}
+
+.landing-actions {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 16px !important;
+  margin-top: 8px !important;
+  width: 100% !important;
+}
+
+.landing-nav-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 168px !important;
+  min-width: 168px !important;
+  max-width: 168px !important;
+  height: 44px !important;
+  padding: 0 12px !important;
+  box-sizing: border-box !important;
+  font-size: 14px !important;
+  margin: 0 !important;
+}
+
+.landing-footer {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  background-color: #111827 !important;
+  color: white !important;
+  padding: 32px !important;
+  text-align: center !important;
+  z-index: 50 !important;
+}
+
+.landing-footer-text {
+  color: #9ca3af !important;
+}
+
+.site-footer-text {
+  color: #9ca3af !important;
+}
+
+/* Centered compact button (registration success) */
+.btn-center-wrap {
+  display: flex !important;
+  justify-content: center !important;
+  width: 100% !important;
+}
+
+.btn-fit {
+  width: fit-content !important;
+  max-width: fit-content !important;
+}
+
+/* Officer results progress bar */
+.results-progress-fill {
+  height: 100% !important;
+  border-radius: 9999px !important;
+  transition: all 0.3s ease !important;
+  background: linear-gradient(135deg, #62609f 0%, #4e4d80 100%) !important;
+  width: var(--progress-width, 0%) !important;
+}
+
 .card {
   background: var(--surface);
   border-radius: 1.5rem;
   padding: 2.5rem;
   box-shadow: 0 10px 40px -10px rgba(15, 23, 42, 0.08), 0 2px 10px -2px rgba(15, 23, 42, 0.04);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
 }
 
 .card:hover {
@@ -321,4 +479,242 @@ input::placeholder {
   font-size: inherit;
   font-weight: 600;
   box-shadow: none;
+}
+
+/* MOBILE: 375px - 767px */
+@media (max-width: 767px) {
+  html, body {
+    width: 100% !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+  }
+
+  main {
+    width: 100vw !important;
+    padding: 16px !important;
+    overflow-x: hidden !important;
+  }
+
+  .card {
+    width: calc(100vw - 32px) !important;
+    margin: 0 auto !important;
+  }
+
+  input, textarea, select {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  input, textarea, select {
+    padding: 8px 12px !important;
+    font-size: 14px !important;
+  }
+  .btn {
+    padding: 8px 16px !important;
+    font-size: 14px !important;
+  }
+  h1 {
+    font-size: 24px !important;
+  }
+  h2 {
+    font-size: 20px !important;
+  }
+  h3 {
+    font-size: 18px !important;
+  }
+  p {
+    font-size: 14px !important;
+  }
+  .card {
+    padding: 24px 16px !important;
+  }
+  table {
+    font-size: 12px !important;
+  }
+
+  /* CENTER AND ALIGN MOBILE */
+
+  /* Center all main containers */
+  main {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* Center all divs with card class */
+  .card {
+    width: 100% !important;
+    max-width: 90vw !important;
+    margin: 0 auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+  }
+
+  /* Center form inputs and textareas */
+  input, textarea, select {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    margin: 0 auto !important;
+  }
+
+  /* Center all buttons */
+  .btn, button, [role="button"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+
+  /* Center all text */
+  p, h1, h2, h3, h4, h5, h6, label, span {
+    text-align: center !important;
+    width: 100% !important;
+  }
+
+  /* Center flexbox items */
+  .flex {
+    justify-content: center !important;
+    align-items: center !important;
+  }
+
+  /* Center grid items */
+  .grid {
+    place-items: center !important;
+  }
+
+  /* Forms centered */
+  form {
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+  }
+
+  /* Space between form elements */
+  input + input,
+  input + button,
+  textarea + button,
+  .space-y-4 > * {
+    margin-top: 12px !important;
+  }
+
+  /* Remove margin from first element */
+  .card > *:first-child {
+    margin-top: 0 !important;
+  }
+}
+
+/* TABLET: 768px - 1023px */
+@media (min-width: 768px) and (max-width: 1023px) {
+  main {
+    padding: 20px !important;
+  }
+  input, textarea, select {
+    padding: 10px 14px !important;
+    font-size: 15px !important;
+  }
+  .btn {
+    padding: 10px 20px !important;
+    font-size: 15px !important;
+  }
+  h1 {
+    font-size: 28px !important;
+  }
+  p {
+    font-size: 15px !important;
+  }
+  .card {
+    padding: 28px 20px !important;
+  }
+}
+
+/* DESKTOP: 1024px and above */
+@media (min-width: 1024px) {
+  main {
+    padding: 24px !important;
+  }
+  input, textarea, select {
+    padding: 12px 16px !important;
+    font-size: 16px !important;
+  }
+  .btn {
+    padding: 12px 24px !important;
+    font-size: 16px !important;
+  }
+  h1 {
+    font-size: 32px !important;
+  }
+  p {
+    font-size: 16px !important;
+  }
+  .card {
+    padding: 32px 24px !important;
+    max-width: 400px !important;
+    width: 90% !important;
+    margin: 0 auto !important;
+  }
+}
+
+/* Extra small phones: 320px - 374px */
+@media (max-width: 374px) {
+  input, textarea, select {
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+  }
+  .btn {
+    padding: 6px 12px !important;
+    font-size: 12px !important;
+  }
+  h1 {
+    font-size: 20px !important;
+  }
+  p {
+    font-size: 12px !important;
+  }
+}
+
+/* REMOVE BUTTON SCROLLING */
+.btn, button, [role="button"], a.btn {
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  text-overflow: ellipsis !important;
+}
+
+button:disabled {
+  overflow: hidden !important;
+}
+
+/* OFFICER DASHBOARD */
+.officer-dashboard {
+  position: relative !important;
+  min-height: 100vh !important;
+  width: 100% !important;
+  max-width: 100vw !important;
+  overflow-x: hidden !important;
+}
+
+.officer-dashboard-bg {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  min-height: 100% !important;
+  height: auto !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  z-index: 0 !important;
+}
+
+/* OFFICER DASHBOARD CONTENT WIDER */
+.officer-content-container {
+  max-width: 1600px !important;
+  width: 99% !important;
+  margin: 0 auto !important;
 }

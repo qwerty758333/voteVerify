@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import FullBackground from '@/app/components/FullBackground'
+import SiteFooter from '@/app/components/SiteFooter'
 import { buildSobaVerificationUrl } from '@/lib/sobaVerifyLink'
 
 export default function VoterPortal() {
@@ -213,16 +214,20 @@ export default function VoterPortal() {
 
   if (returningFromSoba) {
     return (
+      <>
       <main className="min-h-screen w-full flex items-center justify-center p-4 sm:p-8 relative">
         <FullBackground />
         <div className="card text-center relative z-10">
           <p className="text-slate-600">Confirming verification…</p>
         </div>
       </main>
+      <SiteFooter />
+      </>
     )
   }
 
   return (
+    <>
     <main className="min-h-screen w-full flex items-center justify-center p-4 sm:p-8 relative">
       <FullBackground />
       <div className="w-full max-w-[480px] relative z-10 py-10 mx-auto">
@@ -373,5 +378,7 @@ export default function VoterPortal() {
         </div>
       </div>
     </main>
+    <SiteFooter />
+    </>
   )
 }

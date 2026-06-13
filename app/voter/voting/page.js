@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import FullBackground from '@/app/components/FullBackground'
+import SiteFooter from '@/app/components/SiteFooter'
 
 export default function VotingPage() {
   const router = useRouter()
@@ -93,17 +94,21 @@ export default function VotingPage() {
 
   if (loading) {
     return (
+      <>
       <main className="min-h-screen w-full flex items-center justify-center p-4 sm:p-8 relative">
         <FullBackground />
         <div className="card text-center relative z-10">
           <p className="text-slate-600">Loading ballot…</p>
         </div>
       </main>
+      <SiteFooter />
+      </>
     )
   }
 
   if (success) {
     return (
+      <>
       <main className="min-h-screen w-full flex items-center justify-center p-4 sm:p-8 relative">
         <FullBackground />
         <div className="card text-center relative z-10 max-w-md w-full">
@@ -117,10 +122,13 @@ export default function VotingPage() {
           <p className="text-slate-500 text-sm">Redirecting home…</p>
         </div>
       </main>
+      <SiteFooter />
+      </>
     )
   }
 
   return (
+    <>
     <main className="min-h-screen w-full flex items-center justify-center p-4 sm:p-8 relative">
       <FullBackground />
       <div className="w-full max-w-[480px] relative z-10 py-10 mx-auto">
@@ -132,7 +140,7 @@ export default function VotingPage() {
             Welcome, <strong>{voter?.name}</strong>. Select your choice below.
           </p>
 
-          <div className="space-y-3 mb-6">
+          <div className="space-y-5 mb-6">
             {candidates.length === 0 ? (
               <p className="text-center text-slate-500 py-6">
                 No candidates available for this event.
@@ -174,5 +182,7 @@ export default function VotingPage() {
         </div>
       </div>
     </main>
+    <SiteFooter />
+    </>
   )
 }

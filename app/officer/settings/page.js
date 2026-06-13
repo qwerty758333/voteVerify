@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import FullBackground from '@/app/components/FullBackground'
+import SiteFooter from '@/app/components/SiteFooter'
 
 const OFFICER_SESSION_KEY = 'officerAuthenticated'
 
@@ -96,6 +97,7 @@ export default function SettingsPage() {
   }
 
   return (
+    <>
     <main className="min-h-screen w-full flex items-center justify-center p-4 sm:p-8 relative">
       <FullBackground />
       <div className="w-full max-w-[540px] relative z-10 py-10 mx-auto">
@@ -247,5 +249,7 @@ export default function SettingsPage() {
         </div>
       </div>
     </main>
+    <SiteFooter />
+    </>
   )
 }

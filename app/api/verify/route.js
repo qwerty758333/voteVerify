@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
 import { getResolvedSobaCredentials, getCurrentEventId } from '@/lib/events'
-import { readVoters, writeVoters, findVoterIndex } from '@/lib/voterStore'
+import prisma from '@/lib/prisma'
 
 export async function POST(request) {
-  const creds = getResolvedSobaCredentials()
+  const creds = await getResolvedSobaCredentials()
   if (!creds) {
     return NextResponse.json(
       {
@@ -15,23 +15,29 @@ export async function POST(request) {
   }
 
   const { email } = await request.json()
-  const em = String(email || '').trim()
+  const em = String(email || '').trim().toLowerCase()
 
   if (!em) {
     return NextResponse.json({ error: 'Email required' }, { status: 400 })
   }
 
-  const eventId = getCurrentEventId()
-  const voters = readVoters()
-  const index = findVoterIndex(voters, { email: em, eventId })
+  const eventId = await getCurrentEventId()
 
-  if (index === -1) {
+  const voter = await prisma.voter.findFirst({
+    where: { eventId, email: em }
+  })
+
+  if (!voter) {
     return NextResponse.json({ error: 'Voter not found for this event' }, { status: 404 })
   }
 
-  voters[index].sobaVerified = true
-  voters[index].verifiedAt = new Date().toISOString()
-  writeVoters(voters)
+  const updated = await prisma.voter.update({
+    where: { id: voter.id },
+    data: {
+      sobaVerified: true,
+      verifiedAt: new Date()
+    }
+  })
 
-  return NextResponse.json({ success: true, voter: voters[index] })
+  return NextResponse.json({ success: true, voter: updated })
 }

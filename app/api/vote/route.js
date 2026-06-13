@@ -1,17 +1,12 @@
 import { NextResponse } from 'next/server'
 import { getCurrentEventId } from '@/lib/events'
-import {
-  readVotersNormalized,
-  writeVoters,
-  findVoterIndex,
-  isFaceVerifiedToday
-} from '@/lib/voterStore'
-import { readVotes, writeVotes } from '@/lib/voteStore'
+import prisma from '@/lib/prisma'
+import { isFaceVerifiedToday } from '@/lib/voterStore'
 
 export async function POST(request) {
   try {
     const { voterId, choice } = await request.json()
-    const eventId = getCurrentEventId()
+    const eventId = await getCurrentEventId()
 
     if (!eventId) {
       return NextResponse.json(
@@ -20,17 +15,16 @@ export async function POST(request) {
       )
     }
 
-    const voters = readVotersNormalized()
-    const voterIndex = findVoterIndex(voters, { id: voterId, eventId })
+    const voter = await prisma.voter.findFirst({
+      where: { id: voterId, eventId }
+    })
 
-    if (voterIndex === -1) {
+    if (!voter) {
       return NextResponse.json(
         { error: 'Voter not found for this event' },
         { status: 404 }
       )
     }
-
-    const voter = voters[voterIndex]
 
     if (!isFaceVerifiedToday(voter)) {
       return NextResponse.json(
@@ -46,25 +40,35 @@ export async function POST(request) {
       )
     }
 
-    const voteData = readVotes()
-
-    voteData.votes.push({
-      id: 'vote_' + Date.now(),
-      eventId,
-      voterId,
-      choice,
-      timestamp: new Date().toISOString()
+    await prisma.vote.create({
+      data: {
+        eventId,
+        voterId,
+        choice
+      }
     })
 
-    writeVotes(voteData)
+    console.log(`Vote cast for ${choice}`)
 
-    voters[voterIndex].hasVoted = true
-    voters[voterIndex].votedAt = new Date().toISOString()
-    writeVoters(voters)
+    await prisma.candidate.updateMany({
+      where: { name: choice },
+      data: { votes: { increment: 1 } }
+    })
+
+    const updatedVoter = await prisma.voter.update({
+      where: { id: voterId },
+      data: {
+        hasVoted: true,
+        votedAt: new Date()
+      }
+    })
+
+    console.log('Voter marked as voted:', updatedVoter.email)
 
     return NextResponse.json({
       success: true,
-      message: 'Vote cast and recorded'
+      message: 'Vote cast and recorded',
+      voter: updatedVoter
     })
   } catch (err) {
     console.error('Vote error:', err)

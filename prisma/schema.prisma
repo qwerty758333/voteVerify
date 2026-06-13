@@ -1,0 +1,56 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+ 
+}
+
+model Voter {
+  id                String    @id @default(cuid())
+  eventId           String
+  nic               String
+  email             String
+  name              String
+  sobaVerified      Boolean   @default(false)
+  faceVerifiedToday Boolean   @default(false)
+  hasVoted          Boolean   @default(false)
+  registeredAt      DateTime  @default(now())
+  verifiedAt        DateTime?
+  lastVerifiedAt    DateTime?
+  votedAt           DateTime?
+
+  @@unique([eventId, nic])
+  @@unique([eventId, email])
+  @@index([eventId])
+  @@index([email])
+}
+
+model Vote {
+  id        String   @id @default(cuid())
+  eventId   String
+  voterId   String
+  choice    String
+  timestamp DateTime @default(now())
+
+  @@index([eventId])
+  @@index([voterId])
+}
+
+model Event {
+  id               String   @id @default(cuid())
+  eventId          String   @unique
+  apiKey           String
+  orgId            String
+  eventName        String
+  verificationUrl  String?   @db.LongText
+  registrationUrl  String?   @db.LongText
+  updatedAt        DateTime  @default(now()) @updatedAt
+}
+
+model Candidate {
+  id    String @id @default(cuid())
+  name  String
+  votes Int    @default(0)
+}
