@@ -1,4 +1,5 @@
 'use client'
+console.log('CALLBACK PAGE LOADED - checking functionality')
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -11,84 +12,89 @@ export default function VerifyCallback() {
   useEffect(() => {
     async function handleCallback() {
       try {
-        console.log('=== VERIFY CALLBACK STARTED ===')
-
-        const voterId = localStorage.getItem('verifyingVoterId')
-        const voterEmail = localStorage.getItem('verifyingVoterEmail')
-
-        console.log('Retrieved Voter ID:', voterId)
-        console.log('Retrieved Voter Email:', voterEmail)
-
+        console.log('=== CALLBACK STARTED ===')
+        console.log('Current URL:', window.location.href)
+        console.log('All URL params:', window.location.search)
+        
+        // Get stored voter ID
+        const voterId = 
+          localStorage.getItem('verifyingVoterId')
+        const voterEmail = 
+          localStorage.getItem('verifyingVoterEmail')
+        
+        console.log('voterId from storage:', voterId)
+        console.log('voterEmail from storage:', voterEmail)
+        
         if (!voterId || !voterEmail) {
-          setStatus('Error: Voter data lost')
-          console.error('Voter ID or Email missing')
-
-          setTimeout(() => {
-            router.push('/voter/login')
-          }, 2000)
+          console.error('NO VOTER DATA IN STORAGE!')
+          console.log('Redirecting to login...')
+          router.push('/voter/login')
           return
         }
-
-        setStatus('Updating verification status...')
-        console.log('Calling /api/verify-face...')
-
+  
+        setStatus('Calling verify API...')
+        console.log('About to call /api/verify-face')
+        
         const res = await fetch('/api/verify-face', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json' 
+          },
           body: JSON.stringify({
-            voterId,
+            voterId: voterId,
             email: voterEmail
           })
         })
-
-        console.log('API Status:', res.status)
-
+  
+        console.log('API Response Status:', res.status)
         const data = await res.json()
-        console.log('API Response:', data)
-
+        console.log('API Response Data:', data)
+  
         if (!res.ok) {
-          setStatus('Verification failed')
-          console.error('API Error:', data)
-
-          setTimeout(() => {
-            router.push('/voter/login')
-          }, 2000)
+          console.error('API Error:', data.error)
+          setStatus('Error: ' + data.error)
+          setTimeout(() => router.push('/voter/login'), 2000)
           return
         }
-
-        console.log('Fetching updated voter data...')
-
+  
+        console.log('API SUCCESS - updating localStorage')
+        
+        // Get full voter data
         const votersRes = await fetch('/api/voters')
         const voters = await votersRes.json()
-
-        const updatedVoter =
-          voters.find(v => v.id === voterId) || data.voter
-
+        const updatedVoter = voters.find(v => v.id === voterId)
+  
         if (updatedVoter) {
-          localStorage.setItem('currentVoter', JSON.stringify(updatedVoter))
-          console.log('Updated currentVoter in storage')
+          console.log('Found updated voter:', updatedVoter.email)
+          localStorage.setItem(
+            'currentVoter',
+            JSON.stringify(updatedVoter)
+          )
         }
-
+  
+        // Clean up temp storage
         localStorage.removeItem('verifyingVoterId')
         localStorage.removeItem('verifyingVoterEmail')
-        localStorage.removeItem('pendingVoterId')
-
-        console.log('Redirecting to voting page...')
-        setStatus('Redirecting to voting...')
-
+        
+        console.log('About to redirect to /voter/voting')
+        setStatus('Redirecting...')
+  
         setTimeout(() => {
-          window.location.href = '/voter/voting'
-        }, 1000)
+          console.log('Executing router.push...')
+          router.push('/voter/voting')
+        }, 500)
+  
       } catch (err) {
-        console.error('Callback Error:', err)
+        console.error('CALLBACK ERROR:', err)
+        console.error('Error message:', err.message)
         setStatus('Error: ' + err.message)
-
+        
         setTimeout(() => {
           router.push('/voter/login')
         }, 2000)
       }
     }
-
+  
     handleCallback()
   }, [router])
 

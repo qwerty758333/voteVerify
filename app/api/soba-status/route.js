@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getResolvedSobaCredentials, getCurrentEventId, SOBA_ORG_ID } from '@/lib/events'
-import { readVoters, writeVoters, findVoterIndex } from '@/lib/voterStore'
+import prisma from '@/lib/prisma'
 
 const SOBA_ADD_ATTENDEE = 'https://poc.soba.network/api/add-attendee'
 
@@ -13,7 +13,7 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 })
     }
 
-    const creds = getResolvedSobaCredentials()
+    const creds = await getResolvedSobaCredentials()
     if (!creds) {
       return NextResponse.json(
         { error: 'SOBA is not configured. Set Event ID + API Key in Officer Settings or .env.local.' },
@@ -48,13 +48,22 @@ export async function GET(request) {
     let updatedAt = null
 
     if (faceRegistered) {
-      const voters = readVoters()
-      const idx = findVoterIndex(voters, { email, eventId: getCurrentEventId() })
-      if (idx !== -1 && !voters[idx].sobaVerified) {
-        voters[idx].sobaVerified = true
-        updatedAt = new Date().toISOString()
-        voters[idx].verifiedAt = updatedAt
-        writeVoters(voters)
+      const currentEventId = await getCurrentEventId()
+      const em = email.toLowerCase()
+
+      const voter = await prisma.voter.findFirst({
+        where: { eventId: currentEventId, email: em }
+      })
+
+      if (voter && !voter.sobaVerified) {
+        updatedAt = new Date()
+        await prisma.voter.update({
+          where: { id: voter.id },
+          data: {
+            sobaVerified: true,
+            verifiedAt: updatedAt
+          }
+        })
         updated = true
       }
     }

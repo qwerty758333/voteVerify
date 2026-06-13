@@ -1,22 +1,31 @@
 import { NextResponse } from 'next/server'
 import { getResolvedSobaCredentials, getCurrentEventId } from '@/lib/events'
-import { readVoters, writeVoters, findVoterIndex } from '@/lib/voterStore'
+import prisma from '@/lib/prisma'
 
-function markVerifiedByEmail(email) {
+async function markVerifiedByEmail(email) {
   if (!email) return
-  const eventId = getCurrentEventId()
-  const voters = readVoters()
-  const index = findVoterIndex(voters, { email, eventId })
-  if (index !== -1) {
-    voters[index].sobaVerified = true
-    voters[index].verifiedAt = new Date().toISOString()
-    writeVoters(voters)
-  }
+
+  const eventId = await getCurrentEventId()
+  const em = String(email).trim().toLowerCase()
+
+  const voter = await prisma.voter.findFirst({
+    where: { eventId, email: em }
+  })
+
+  if (!voter) return
+
+  await prisma.voter.update({
+    where: { id: voter.id },
+    data: {
+      sobaVerified: true,
+      verifiedAt: new Date()
+    }
+  })
 }
 
 export async function POST(request) {
   try {
-    const creds = getResolvedSobaCredentials()
+    const creds = await getResolvedSobaCredentials()
     if (!creds) {
       console.warn('soba-callback: SOBA credentials not configured')
     }
@@ -28,7 +37,7 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Email required' }, { status: 400 })
     }
 
-    markVerifiedByEmail(String(email).trim())
+    await markVerifiedByEmail(String(email).trim())
 
     return NextResponse.json({ success: true })
   } catch (error) {
@@ -38,7 +47,7 @@ export async function POST(request) {
 }
 
 export async function GET(request) {
-  const creds = getResolvedSobaCredentials()
+  const creds = await getResolvedSobaCredentials()
   if (!creds) {
     console.warn('soba-callback GET: SOBA credentials not configured')
   }
@@ -47,7 +56,7 @@ export async function GET(request) {
   const email = searchParams.get('email')
 
   if (email) {
-    markVerifiedByEmail(String(email).trim())
+    await markVerifiedByEmail(String(email).trim())
   }
 
   return NextResponse.redirect(new URL('/voter/success', request.url))

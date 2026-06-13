@@ -1,18 +1,43 @@
 import { NextResponse } from 'next/server'
 import { getCurrentEventId } from '@/lib/events'
-import {
-  readVoters,
-  readVotersNormalized,
-  writeVoters,
-  filterVotersByEvent,
-  voterMatchesEvent
-} from '@/lib/voterStore'
+import prisma from '@/lib/prisma'
+import { normalizeFaceVerifiedStatus } from '@/lib/voterStore'
+
+async function fetchEventVotersNormalized(eventId) {
+  const voters = await prisma.voter.findMany({
+    where: { eventId },
+    orderBy: { registeredAt: 'desc' }
+  })
+
+  const updates = []
+  const normalized = voters.map(voter => {
+    const next = normalizeFaceVerifiedStatus(voter)
+    if (next.faceVerifiedToday !== voter.faceVerifiedToday) {
+      updates.push(
+        prisma.voter.update({
+          where: { id: voter.id },
+          data: { faceVerifiedToday: next.faceVerifiedToday }
+        })
+      )
+    }
+    return next
+  })
+
+  if (updates.length) {
+    await Promise.all(updates)
+  }
+
+  return normalized
+}
 
 export async function GET() {
   try {
-    const eventId = getCurrentEventId()
-    const allVoters = readVotersNormalized()
-    const eventVoters = filterVotersByEvent(allVoters, eventId)
+    const eventId = await getCurrentEventId()
+    if (!eventId) {
+      return NextResponse.json([])
+    }
+
+    const eventVoters = await fetchEventVotersNormalized(eventId)
 
     console.log(
       `Returning ${eventVoters.length} voters for event ${eventId || '(none)'}`
@@ -44,7 +69,7 @@ export async function POST(request) {
       )
     }
 
-    const eventId = getCurrentEventId()
+    const eventId = await getCurrentEventId()
     if (!eventId) {
       return NextResponse.json(
         { error: 'No active event configured. Set Event ID in officer settings.' },
@@ -53,11 +78,13 @@ export async function POST(request) {
     }
 
     const formattedNIC = nic.trim().toUpperCase()
-    const voters = readVoters()
 
-    const existing = voters.find(
-      v => v.nic === formattedNIC && voterMatchesEvent(v, eventId)
-    )
+    const existing = await prisma.voter.findFirst({
+      where: {
+        eventId,
+        nic: formattedNIC
+      }
+    })
 
     if (existing) {
       return NextResponse.json(
@@ -66,23 +93,19 @@ export async function POST(request) {
       )
     }
 
-    const newVoter = {
-      id: Date.now().toString(),
-      eventId,
-      nic: formattedNIC,
-      email,
-      name,
-      sobaVerified: false,
-      faceVerifiedToday: false,
-      hasVoted: false,
-      registeredAt: new Date().toISOString(),
-      verifiedAt: null,
-      lastVerifiedAt: null,
-      votedAt: null
-    }
+    const newVoter = await prisma.voter.create({
+      data: {
+        eventId,
+        nic: formattedNIC,
+        email,
+        name,
+        sobaVerified: false,
+        faceVerifiedToday: false,
+        hasVoted: false
+      }
+    })
 
-    voters.push(newVoter)
-    writeVoters(voters)
+    console.log('New voter created:', newVoter.email)
 
     return NextResponse.json({ success: true, voter: newVoter }, { status: 201 })
   } catch (err) {

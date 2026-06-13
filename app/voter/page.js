@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import SobaButton from '@/app/components/SobaButton'
 import FullBackground from '@/app/components/FullBackground'
+import SiteFooter from '@/app/components/SiteFooter'
 
 export default function VoterPage() {
   const [nic, setNic] = useState('')
@@ -139,6 +140,7 @@ export default function VoterPage() {
   const isNICValid = validateNIC(nic)
 
   return (
+    <>
     <main className="min-h-screen w-full flex items-center justify-center p-4 sm:p-8 relative">
       <FullBackground />
       <div className="w-full max-w-[480px] relative z-10 py-10 mx-auto">
@@ -231,21 +233,31 @@ export default function VoterPage() {
                 )}
 
                 {flow === 'soba_ok' && (
-                  <>
-                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 border border-green-200">
+                  <div className="flex flex-col items-center justify-center w-full">
+                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4 border border-green-200">
                       <span className="text-3xl text-green-600">✓</span>
                     </div>
-                    <h2 className="text-2xl font-bold mb-2 text-slate-900">
+
+                    <h2 className="text-xl md:text-2xl font-bold mb-2 text-slate-900 text-center">
                       Registration Complete
                     </h2>
-                    <p className="text-slate-600 mb-6">
-                      You&apos;re registered and ready to vote. Log in to verify
-                      your identity and cast your ballot.
+
+                    <p className="text-slate-600 mb-6 text-center text-sm md:text-base">
+                      Your registration is complete. The election officer will send you
+                      a Face ID creation link.
                     </p>
-                    <a href="/voter/login" className="btn btn-primary w-full">
-                      Go to Login
-                    </a>
-                  </>
+
+                    <div className="btn-center-wrap">
+                      <a href="/voter/login" className="btn btn-primary btn-fit">
+                        Go to Login
+                      </a>
+                    </div>
+
+                    <p className="text-xs text-slate-500 mt-4 text-center">
+                      Once you receive the link from the officer, click it to create your Face ID before
+                      voting day.
+                    </p>
+                  </div>
                 )}
               </div>
             )}
@@ -253,5 +265,7 @@ export default function VoterPage() {
         </div>
       </div>
     </main>
+    <SiteFooter />
+    </>
   )
 }

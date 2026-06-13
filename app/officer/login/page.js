@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import FullBackground from '@/app/components/FullBackground'
+import SiteFooter from '@/app/components/SiteFooter'
 
 const OFFICER_PIN = '1234'
 
@@ -28,6 +29,7 @@ export default function OfficerLogin() {
   }
 
   return (
+    <>
     <main className="min-h-screen w-full flex items-center justify-center p-4 sm:p-8 relative">
       <FullBackground />
       <div className="w-full max-w-[480px] relative z-10 py-10 mx-auto">
@@ -80,5 +82,7 @@ export default function OfficerLogin() {
         </div>
       </div>
     </main>
+    <SiteFooter />
+    </>
   )
 }

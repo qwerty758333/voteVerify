@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import FullBackground from '@/app/components/FullBackground'
+import SiteFooter from '@/app/components/SiteFooter'
 
 export default function OfficerDashboard() {
   const router = useRouter()
@@ -161,12 +162,15 @@ export default function OfficerDashboard() {
 
   if (authLoading) {
     return (
-      <main className="min-h-screen w-full flex items-center justify-center p-4 sm:p-8 relative">
-        <FullBackground />
+      <>
+      <main className="officer-dashboard min-h-screen w-full flex items-center justify-center p-4 sm:p-8 relative">
+        <FullBackground className="officer-dashboard-bg" />
         <div className="card text-center relative z-10">
           <p className="text-slate-600">Loading dashboard…</p>
         </div>
       </main>
+      <SiteFooter />
+      </>
     )
   }
 
@@ -182,9 +186,10 @@ export default function OfficerDashboard() {
     }`
 
   return (
-    <main className="min-h-screen w-full relative">
-      <FullBackground />
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-8 py-8">
+    <>
+    <main className="officer-dashboard min-h-screen w-full relative">
+      <FullBackground className="officer-dashboard-bg" />
+      <div className="officer-content-container relative z-10 px-4 sm:px-8 py-8">
         <div className="card mb-6 !p-6 sm:!p-8">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
@@ -320,7 +325,7 @@ export default function OfficerDashboard() {
                 <p className="text-center py-10 text-slate-500">Loading results…</p>
               ) : candidates.length === 0 ? (
                 <p className="text-center py-10 text-slate-500">
-                  No candidates found. Ensure data/votes.json is configured.
+                  No candidates found. Add candidates via the database or POST /api/candidates.
                 </p>
               ) : (
                 <div className="space-y-4">
@@ -340,11 +345,9 @@ export default function OfficerDashboard() {
                         </div>
                         <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
                           <div
-                            className="h-full transition-all rounded-full"
-                            style={{
-                              width: `${percentage}%`,
-                              background:
-                                'linear-gradient(135deg, #62609f 0%, #4e4d80 100%)'
+                            className="results-progress-fill"
+                            ref={el => {
+                              if (el) el.style.setProperty('--progress-width', `${percentage}%`)
                             }}
                           />
                         </div>
@@ -375,5 +378,7 @@ export default function OfficerDashboard() {
         </div>
       </div>
     </main>
+    <SiteFooter />
+    </>
   )
 }

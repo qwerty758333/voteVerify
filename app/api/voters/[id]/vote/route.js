@@ -1,41 +1,46 @@
 ﻿import { NextResponse } from 'next/server'
 import { getCurrentEventId } from '@/lib/events'
-import { readVoters, writeVoters, findVoterIndex } from '@/lib/voterStore'
+import prisma from '@/lib/prisma'
 
 export async function PATCH(request, { params }) {
   try {
     const { id } = await params
-    const eventId = getCurrentEventId()
+    const eventId = await getCurrentEventId()
 
-    const voters = readVoters()
-    const index = findVoterIndex(voters, { id, eventId })
+    const voter = await prisma.voter.findFirst({
+      where: { id, eventId }
+    })
 
-    if (index === -1) {
+    if (!voter) {
       return NextResponse.json(
         { error: 'Voter not found for this event' },
         { status: 404 }
       )
     }
 
-    if (voters[index].hasVoted) {
+    if (voter.hasVoted) {
       return NextResponse.json(
         { error: 'Voter has already voted' },
         { status: 400 }
       )
     }
 
-    if (!voters[index].sobaVerified) {
+    if (!voter.sobaVerified) {
       return NextResponse.json(
         { error: 'Voter not SOBA verified' },
         { status: 400 }
       )
     }
 
-    voters[index].hasVoted = true
-    voters[index].votedAt = new Date().toISOString()
-    writeVoters(voters)
+    const updated = await prisma.voter.update({
+      where: { id: voter.id },
+      data: {
+        hasVoted: true,
+        votedAt: new Date()
+      }
+    })
 
-    return NextResponse.json(voters[index])
+    return NextResponse.json(updated)
   } catch (err) {
     console.error('Vote PATCH error:', err)
     return NextResponse.json({ error: err.message }, { status: 500 })

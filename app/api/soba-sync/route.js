@@ -1,16 +1,22 @@
 import { NextResponse } from 'next/server'
-import { getResolvedSobaCredentials, getCurrentEventId } from '@/lib/events'
-import {
-  readVoters,
-  writeVoters,
-  voterMatchesEvent
-} from '@/lib/voterStore'
+import { getResolvedSobaCredentials } from '@/lib/events'
+import prisma from '@/lib/prisma'
 
 const SOBA_VERIFIED_USERS = 'https://poc.soba.network/api/verified-users'
 
+function isSobaVerifiedResponse(data) {
+  return (
+    data?.face_id_registered === true ||
+    data?.verified === true ||
+    data?.data?.face_id_registered === true ||
+    data?.data?.verified === true ||
+    data?.status === 'verified'
+  )
+}
+
 export async function POST() {
   try {
-    const creds = getResolvedSobaCredentials()
+    const creds = await getResolvedSobaCredentials()
     if (!creds) {
       return NextResponse.json(
         {
@@ -22,21 +28,17 @@ export async function POST() {
     }
 
     const { eventId, apiKey } = creds
-    const voters = readVoters()
-    const unverified = voters.filter(
-      v => !v.sobaVerified && voterMatchesEvent(v, eventId)
-    )
-    console.log(
-      `Checking ${unverified.length} voters for event ${eventId}`
-    )
+
+    const unverified = await prisma.voter.findMany({
+      where: { eventId, sobaVerified: false }
+    })
+
+    console.log(`Checking ${unverified.length} voters for event ${eventId}`)
 
     let synced = 0
 
-    for (let i = 0; i < voters.length; i++) {
-      if (!voterMatchesEvent(voters[i], eventId)) continue
-      if (voters[i].sobaVerified) continue
-
-      const email = String(voters[i].email || '').trim()
+    for (const voter of unverified) {
+      const email = String(voter.email || '').trim()
       if (!email) continue
 
       try {
@@ -60,26 +62,20 @@ export async function POST() {
 
         const data = await response.json()
 
-        const isVerified =
-          data?.face_id_registered === true ||
-          data?.verified === true ||
-          data?.data?.face_id_registered === true ||
-          data?.data?.verified === true ||
-          data?.status === 'verified'
-
-        if (isVerified) {
-          voters[i].sobaVerified = true
-          voters[i].verifiedAt = new Date().toISOString()
+        if (isSobaVerifiedResponse(data)) {
+          await prisma.voter.update({
+            where: { id: voter.id },
+            data: {
+              sobaVerified: true,
+              verifiedAt: new Date()
+            }
+          })
           synced += 1
           console.log('Verified:', email)
         }
-      } catch (err) {
+      } catch {
         console.log('Timeout/error for', email, '- skipping')
       }
-    }
-
-    if (synced > 0) {
-      writeVoters(voters)
     }
 
     console.log('Sync done. Updated:', synced)
